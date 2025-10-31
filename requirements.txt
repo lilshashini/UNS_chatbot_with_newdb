@@ -15,15 +15,11 @@ supabase>=2.0.0
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
 
-# AI/ML
+# AI/ML - CORRECTED PACKAGE NAME
 openai>=1.0.0
-azure-ai-openai==1.30.0   # Fixed name + pinned version
 
 # Environment management
 python-dotenv>=1.0.0
-
-# Logging
-logging>=0.4.9.6
 
 # Additional utilities
 plotly>=5.15.0
@@ -34,8 +30,3 @@ pytz>=2023.3
 # Optional: For enhanced text processing
 nltk>=3.8.0
 textblob>=0.17.0
-
-# Development dependencies (optional)
-pytest>=7.4.0
-black>=23.7.0
-flake8>=6.0.0

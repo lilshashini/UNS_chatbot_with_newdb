@@ -1949,3 +1949,45 @@ LIMIT 100;
 2025-10-31 12:06:15 - improved_manufacturing_chatbot - ERROR - Database query failed: Query blocked: Access to table 'LATERAL' not allowed
 2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - No real factory data available, using basic overview
 2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 1171 characters
+2025-10-31 13:10:45 - improved_manufacturing_chatbot - INFO - New session: 52a0b79b
+2025-10-31 13:11:08 - improved_manufacturing_chatbot - INFO - Processing query: give the performance of all the lines 
+2025-10-31 13:11:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give the performance of all the lines '
+2025-10-31 13:11:08 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 13:11:08 - improved_manufacturing_chatbot - INFO - User Question: give the performance of all the lines 
+2025-10-31 13:11:08 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT\n    s.site_name,\n    d.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments d ON pl.department_id = d.id\nJOIN sites s ON d.site_id = s.id\nORDER BY k.timestamp DESC;', 'params': [], 'explanation': 'This query retrieves the latest performance metric for all production lines across all sites, including site name, department (area) name, line name, performance value, and timestamp. It uses the correct schema hierarchy and joins.', 'is_conceptual': False}
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 283 characters
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON ...
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 13:11:10 - improved_manufacturing_chatbot - INFO - SQL: SELECT
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON pl.department_id = d.id
+JOIN sites s ON d.site_id = s.id
+ORDER BY k.timestamp DESC;
+2025-10-31 13:11:13 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 13:11:13 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 13:11:14 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 13:11:14 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 13:11:14 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 13:11:24 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart

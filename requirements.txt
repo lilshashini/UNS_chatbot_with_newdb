@@ -17,7 +17,7 @@ psycopg2-binary>=2.9.0
 
 # AI/ML
 openai>=1.0.0
-azure-openai>=1.0.0
+azure-ai-openai>=1.0.0
 
 # Environment management
 python-dotenv>=1.0.0

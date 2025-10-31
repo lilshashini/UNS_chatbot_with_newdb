@@ -12,6 +12,9 @@ from openai import AzureOpenAI
 import logging
 from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine, text
+from openai import AzureOpenAI
+
+
 load_dotenv()
 # =============================================================================
 # LOGGING CONFIGURATION

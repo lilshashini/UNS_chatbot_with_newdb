@@ -1,0 +1,8 @@
+streamlit==1.39.0
+pandas==2.2.3
+sqlalchemy==2.0.35
+matplotlib==3.9.2
+supabase==2.9.1
+python-dotenv==1.0.1
+openai==1.50.2
+psycopg2-binary==2.9.9

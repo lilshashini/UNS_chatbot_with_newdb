@@ -1,0 +1,1951 @@
+2025-10-27 10:22:05 - improved_manufacturing_chatbot - INFO - New session: 6489a180
+2025-10-27 10:23:14 - improved_manufacturing_chatbot - INFO - New session: b6fd8f59
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 10:23:30 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(d.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(km.oee, 0) * 100)::numeric, 0) AS oee,
+            ROUND((COALESCE(km.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(km.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(km.quality, 0) * 100)::numeric, 0) AS quality,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qi.inspection_result,
+            qi.rejection_reason,
+            COALESCE(qi.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qi.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            km.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qi.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments d ON s.id = d.site_id
+        LEFT JOIN production_lines pl ON d.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, oee, availability, performance, quality, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) km ON km.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qi ON qi.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 10:23:31 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:23:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:23:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 10:23:31 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:24:43 - improved_manufacturing_chatbot - INFO - New session: a78b2613
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+
+
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories
+
+'
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+
+
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(d.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(km.oee, 0) * 100)::numeric, 0) AS oee,
+            ROUND((COALESCE(km.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(km.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(km.quality, 0) * 100)::numeric, 0) AS quality,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qi.inspection_result,
+            qi.rejection_reason,
+            COALESCE(qi.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qi.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            km.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qi.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments d ON s.id = d.site_id
+        LEFT JOIN production_lines pl ON d.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, oee, availability, performance, quality, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) km ON km.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qi ON qi.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 10:24:52 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:25:12 - improved_manufacturing_chatbot - INFO - New session: c5357195
+2025-10-27 10:25:18 - improved_manufacturing_chatbot - INFO - Processing query: hey
+2025-10-27 10:25:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'hey'
+2025-10-27 10:25:18 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:25:18 - improved_manufacturing_chatbot - INFO - User Question: hey
+2025-10-27 10:25:18 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - LLM Generated: {'is_conceptual': True, 'answer': 'Hello! How can I assist you with your manufacturing database or SQL queries today?', 'explanation': 'This is a greeting and does not require a SQL query.'}
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['is_conceptual', 'answer', 'explanation']
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: False
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: True
+2025-10-27 10:25:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling conceptual question
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(d.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(km.oee, 0) * 100)::numeric, 0) AS oee,
+            ROUND((COALESCE(km.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(km.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(km.quality, 0) * 100)::numeric, 0) AS quality,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qi.inspection_result,
+            qi.rejection_reason,
+            COALESCE(qi.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qi.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            km.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qi.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments d ON s.id = d.site_id
+        LEFT JOIN production_lines pl ON d.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, oee, availability, performance, quality, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) km ON km.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qi ON qi.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 10:25:41 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:28:25 - improved_manufacturing_chatbot - INFO - New session: 8990e6d3
+2025-10-27 10:28:39 - improved_manufacturing_chatbot - INFO - Processing query: hey
+2025-10-27 10:28:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'hey'
+2025-10-27 10:28:39 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:28:39 - improved_manufacturing_chatbot - INFO - User Question: hey
+2025-10-27 10:28:39 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - LLM Generated: {'is_conceptual': True, 'answer': 'Hello! How can I assist you with your manufacturing database or SQL queries today?', 'explanation': 'This is a greeting and does not require a SQL query.'}
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['is_conceptual', 'answer', 'explanation']
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: False
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: True
+2025-10-27 10:28:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling conceptual question
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 10:28:50 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(d.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(km.oee, 0) * 100)::numeric, 0) AS oee,
+            ROUND((COALESCE(km.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(km.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(km.quality, 0) * 100)::numeric, 0) AS quality,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qi.inspection_result,
+            qi.rejection_reason,
+            COALESCE(qi.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qi.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            km.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qi.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments d ON s.id = d.site_id
+        LEFT JOIN production_lines pl ON d.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, oee, availability, performance, quality, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) km ON km.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qi ON qi.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(d.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 10:28:53 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:28:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 10:28:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 10:28:53 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) could not translate host name "db.supabase.co" to address: nodename nor servname provided, or not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:00:05 - improved_manufacturing_chatbot - INFO - New session: 1b090fb3
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:00:18 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            mk.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) mk ON mk.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qc ON qc.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 11:00:19 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:00:19 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:00:19 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 11:00:19 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:03:21 - improved_manufacturing_chatbot - INFO - New session: b4698b80
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:03:32 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            mk.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) mk ON mk.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qc ON qc.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 11:03:33 - improved_manufacturing_chatbot - ERROR - Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:03:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:03:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: False, Rows: 0
+2025-10-27 11:03:33 - improved_manufacturing_chatbot - ERROR - 🔍 [DEBUG] Query execution failed: Query execution error: (psycopg2.OperationalError) connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+connection to server at "db.ozzadjwksgwnvclxqxyb.supabase.co" (2406:da1a:6b0:f60e:7ed7:a384:8836:6797), port 6543 failed: FATAL:  no such user
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-27 11:06:18 - improved_manufacturing_chatbot - INFO - New session: 7f8848ca
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:06:26 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            mk.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) mk ON mk.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qc ON qc.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - Query successful: 6 rows returned
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 6
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Using factory overview formatting
+2025-10-27 11:06:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 2414 characters
+2025-10-27 11:14:50 - improved_manufacturing_chatbot - INFO - Processing query: give the OEE comparison between biygama and Katunayake
+2025-10-27 11:14:50 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give the OEE comparison between biygama and Katunayake'
+2025-10-27 11:14:50 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 11:14:50 - improved_manufacturing_chatbot - INFO - User Question: give the OEE comparison between biygama and Katunayake
+2025-10-27 11:14:50 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.oee,\n    k.availability,\n    k.performance,\n    k.quality,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nWHERE (LOWER(s.site_name) ILIKE '%biyagama%' OR LOWER(s.site_name) ILIKE '%katunayake%')\nORDER BY k.timestamp DESC\nLIMIT 100;", 'params': [], 'explanation': 'This query compares OEE and related KPIs for all production lines in the Biyagama and Katunayake sites, showing the most recent 100 records.', 'is_conceptual': False}
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 429 characters
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines...
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:14:53 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+WHERE (LOWER(s.site_name) ILIKE '%biyagama%' OR LOWER(s.site_name) ILIKE '%katunayake%')
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-27 11:14:54 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-27 11:14:54 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-27 11:14:54 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-27 11:14:54 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-27 11:14:54 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-27 11:15:58 - improved_manufacturing_chatbot - INFO - Processing query: give e full report about katunayake 
+2025-10-27 11:15:58 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give e full report about katunayake '
+2025-10-27 11:15:58 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-27 11:15:58 - improved_manufacturing_chatbot - INFO - User Question: give e full report about katunayake 
+2025-10-27 11:15:58 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.oee,\n    k.availability,\n    k.performance,\n    k.quality,\n    k.teep,\n    k.mtbf,\n    k.mttr,\n    k.timestamp AS kpi_timestamp,\n    eo.order_number,\n    eo.order_status,\n    eo.scheduled_start_time,\n    eo.scheduled_end_time,\n    eo.actual_start_time,\n    eo.actual_end_time,\n    eo.produced_quantity,\n    eo.remaining_quantity,\n    eo.item_number AS order_item_number,\n    eo.item_description,\n    eo.bom,\n    eo.available_quantity,\n    eo.reserved_quantity,\n    eo.ordered_quantity,\n    eo.location,\n    eo.timestamp AS order_timestamp,\n    qi.order_number AS inspection_order_number,\n    qi.item_number AS inspection_item_number,\n    qi.inspection_result,\n    qi.rejection_reason,\n    qi.rejection_quantity,\n    qi.accepted_quantity,\n    qi.timestamp AS inspection_timestamp,\n    mr.machine_id,\n    mr.maintenance_status,\n    mr.last_maintenance_date,\n    mr.next_maintenance_date,\n    mr.maintenance_history,\n    mr.timestamp AS maintenance_timestamp\nFROM sites s\nJOIN departments a ON a.site_id = s.id\nJOIN production_lines pl ON pl.department_id = a.id\nLEFT JOIN kpi_metrics k ON k.line_id = pl.id AND k.timestamp = (\n    SELECT MAX(k2.timestamp) FROM kpi_metrics k2 WHERE k2.line_id = pl.id\n)\nLEFT JOIN erp_orders eo ON eo.line_id = pl.id AND eo.timestamp = (\n    SELECT MAX(eo2.timestamp) FROM erp_orders eo2 WHERE eo2.line_id = pl.id\n)\nLEFT JOIN quality_inspections qi ON qi.line_id = pl.id AND qi.timestamp = (\n    SELECT MAX(qi2.timestamp) FROM quality_inspections qi2 WHERE qi2.line_id = pl.id\n)\nLEFT JOIN maintenance_records mr ON mr.line_id = pl.id AND mr.timestamp = (\n    SELECT MAX(mr2.timestamp) FROM maintenance_records mr2 WHERE mr2.line_id = pl.id\n)\nWHERE LOWER(s.site_name) ILIKE '%katunayake%'\nORDER BY pl.line_name, kpi_timestamp DESC\nLIMIT 100;", 'params': [], 'explanation': 'Comprehensive factory overview for Katunayake, including OEE metrics, latest order data, quality inspections, and maintenance records for all lines and departments at the Katunayake site.', 'is_factory_overview': True}
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 1855 characters
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.teep,
+    k.mtbf,
+    k.mttr,
+    k.timestamp AS k...
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:16:02 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.teep,
+    k.mtbf,
+    k.mttr,
+    k.timestamp AS kpi_timestamp,
+    eo.order_number,
+    eo.order_status,
+    eo.scheduled_start_time,
+    eo.scheduled_end_time,
+    eo.actual_start_time,
+    eo.actual_end_time,
+    eo.produced_quantity,
+    eo.remaining_quantity,
+    eo.item_number AS order_item_number,
+    eo.item_description,
+    eo.bom,
+    eo.available_quantity,
+    eo.reserved_quantity,
+    eo.ordered_quantity,
+    eo.location,
+    eo.timestamp AS order_timestamp,
+    qi.order_number AS inspection_order_number,
+    qi.item_number AS inspection_item_number,
+    qi.inspection_result,
+    qi.rejection_reason,
+    qi.rejection_quantity,
+    qi.accepted_quantity,
+    qi.timestamp AS inspection_timestamp,
+    mr.machine_id,
+    mr.maintenance_status,
+    mr.last_maintenance_date,
+    mr.next_maintenance_date,
+    mr.maintenance_history,
+    mr.timestamp AS maintenance_timestamp
+FROM sites s
+JOIN departments a ON a.site_id = s.id
+JOIN production_lines pl ON pl.department_id = a.id
+LEFT JOIN kpi_metrics k ON k.line_id = pl.id AND k.timestamp = (
+    SELECT MAX(k2.timestamp) FROM kpi_metrics k2 WHERE k2.line_id = pl.id
+)
+LEFT JOIN erp_orders eo ON eo.line_id = pl.id AND eo.timestamp = (
+    SELECT MAX(eo2.timestamp) FROM erp_orders eo2 WHERE eo2.line_id = pl.id
+)
+LEFT JOIN quality_inspections qi ON qi.line_id = pl.id AND qi.timestamp = (
+    SELECT MAX(qi2.timestamp) FROM quality_inspections qi2 WHERE qi2.line_id = pl.id
+)
+LEFT JOIN maintenance_records mr ON mr.line_id = pl.id AND mr.timestamp = (
+    SELECT MAX(mr2.timestamp) FROM maintenance_records mr2 WHERE mr2.line_id = pl.id
+)
+WHERE LOWER(s.site_name) ILIKE '%katunayake%'
+ORDER BY pl.line_name, kpi_timestamp DESC
+LIMIT 100;
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - Query successful: 0 rows returned
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 0
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Using factory overview formatting
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - No comprehensive factory data found, attempting simple query
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - SQL: 
+        SELECT 
+            COALESCE(s.site_name, 'Unknown Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages (latest values)
+            ROUND((COALESCE(k.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(k.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(k.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(k.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Current Order Information (optional)
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information (optional)
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information (optional)
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps for data freshness
+            k.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        -- Get latest KPI metrics for each line (if available)
+        LEFT JOIN LATERAL (
+            SELECT mk.*
+            FROM kpi_metrics mk
+            WHERE mk.line_id = pl.id
+            ORDER BY mk.timestamp DESC
+            LIMIT 1
+        ) k ON TRUE
+        -- Get current/active orders for each line (if available)
+        LEFT JOIN LATERAL (
+            SELECT eo.*
+            FROM erp_orders eo
+            WHERE eo.line_id = pl.id
+            ORDER BY eo.scheduled_end_time DESC
+            LIMIT 1
+        ) eo ON TRUE
+        -- Get latest quality control results (if available)
+        LEFT JOIN LATERAL (
+            SELECT qc.*
+            FROM quality_inspections qc
+            WHERE qc.line_id = pl.id
+            ORDER BY qc.timestamp DESC
+            LIMIT 1
+        ) qc ON TRUE
+        -- Get maintenance information (if available)
+        LEFT JOIN LATERAL (
+            SELECT mr.*
+            FROM maintenance_records mr
+            WHERE mr.line_id = pl.id
+            ORDER BY mr.timestamp DESC
+            LIMIT 1
+        ) mr ON TRUE
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, '') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, '') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, '') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, '') ASC
+        LIMIT 50;
+        
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - ERROR - Database query failed: Query blocked: Access to table 'LATERAL' not allowed
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - No real factory data available, using basic overview
+2025-10-27 11:16:03 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 1171 characters
+2025-10-31 10:48:08 - improved_manufacturing_chatbot - INFO - New session: 129e8293
+2025-10-31 10:48:43 - improved_manufacturing_chatbot - INFO - Processing query: what are the lines are there
+2025-10-31 10:48:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'what are the lines are there'
+2025-10-31 10:48:43 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 10:48:43 - improved_manufacturing_chatbot - INFO - User Question: what are the lines are there
+2025-10-31 10:48:43 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name\nFROM production_lines pl\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY s.site_name, a.department_name, pl.line_name;', 'params': [], 'explanation': 'Lists all production lines along with their site and department (area) names using the correct schema hierarchy.', 'is_conceptual': False}
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 236 characters
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_na...
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 10:48:48 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_name, a.department_name, pl.line_name;
+2025-10-31 10:48:53 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 10:48:53 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 10:48:53 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 10:48:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 10:48:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 10:49:23 - improved_manufacturing_chatbot - INFO - Processing query: give me the performace details of all the lines
+2025-10-31 10:49:23 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performace details of all the lines'
+2025-10-31 10:49:23 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 10:49:23 - improved_manufacturing_chatbot - INFO - User Question: give me the performace details of all the lines
+2025-10-31 10:49:23 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    d.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments d ON pl.department_id = d.id\nJOIN sites s ON d.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 100;', 'params': [], 'explanation': 'This query retrieves the performance details for all production lines, including site, area, line name, performance metric, and timestamp. It uses the correct schema hierarchy and joins.', 'is_conceptual': False}
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 294 characters
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON...
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 10:49:26 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON pl.department_id = d.id
+JOIN sites s ON d.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-31 10:49:27 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 10:49:27 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 10:49:27 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 10:49:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 10:49:27 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 10:51:18 - improved_manufacturing_chatbot - INFO - Processing query: there are all 12 lines and when i asking performace of the lines it give 47 lines why?
+2025-10-31 10:51:18 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'there are all 12 lines and when i asking performace of the lines it give 47 lines why?'
+2025-10-31 10:51:18 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 10:51:18 - improved_manufacturing_chatbot - INFO - User Question: there are all 12 lines and when i asking performace of the lines it give 47 lines why?
+2025-10-31 10:51:18 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - LLM Generated: {'is_conceptual': True, 'answer': 'The discrepancy between the expected 12 lines and the returned 47 lines is likely due to how the SQL query is written. If you query the kpi_metrics or production_lines table without filtering or grouping by unique line names, you will get multiple rows per line—one for each recorded timestamp or metric entry. This means each line can appear many times, depending on how often data is logged. To get only the 12 unique lines, you should SELECT DISTINCT line names from the production_lines table, or use GROUP BY line_name when aggregating performance metrics.', 'explanation': 'This is a conceptual question explaining why more rows than expected are returned when querying line performance.'}
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['is_conceptual', 'answer', 'explanation']
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: False
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: True
+2025-10-31 10:51:21 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling conceptual question
+2025-10-31 10:52:02 - improved_manufacturing_chatbot - INFO - Processing query: give me the performace details of all 12 lines
+2025-10-31 10:52:02 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performace details of all 12 lines'
+2025-10-31 10:52:02 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 10:52:02 - improved_manufacturing_chatbot - INFO - User Question: give me the performace details of all 12 lines
+2025-10-31 10:52:02 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.oee,\n    k.availability,\n    k.quality,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 12;', 'params': [], 'explanation': 'This query retrieves the latest performance details (performance, OEE, availability, quality) for all 12 production lines, including site and area context. It uses the kpi_metrics table and joins through the mandatory schema hierarchy.', 'is_conceptual': False}
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 339 characters
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.oee,
+    k.availability,
+    k.quality,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines...
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 10:52:06 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.oee,
+    k.availability,
+    k.quality,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 12;
+2025-10-31 10:52:07 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 10:52:07 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 10:52:08 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 10:52:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 10:52:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:27:06 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance of all the 12 lines
+
+
+2025-10-31 11:27:06 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance of all the 12 lines
+
+'
+2025-10-31 11:27:06 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:27:06 - improved_manufacturing_chatbot - INFO - User Question: give me the performance of all the 12 lines
+
+
+2025-10-31 11:27:06 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nWHERE k.timestamp = (\n    SELECT MAX(k2.timestamp)\n    FROM kpi_metrics k2\n    WHERE k2.line_id = k.line_id\n)\nORDER BY pl.line_name ASC\nLIMIT 12;', 'params': [], 'explanation': 'This query retrieves the most recent performance metric for each of the 12 production lines, including site, area, line name, performance, and timestamp. It uses proper JOINs through the schema hierarchy and limits the result to 12 lines.', 'is_conceptual': False}
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 403 characters
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON...
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:27:08 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+WHERE k.timestamp = (
+    SELECT MAX(k2.timestamp)
+    FROM kpi_metrics k2
+    WHERE k2.line_id = k.line_id
+)
+ORDER BY pl.line_name ASC
+LIMIT 12;
+2025-10-31 11:27:11 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:27:11 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:27:11 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:27:11 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:27:11 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:27:19 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 11:33:36 - improved_manufacturing_chatbot - INFO - New session: 7966e78d
+2025-10-31 11:33:39 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance of all the 12 lines
+
+
+2025-10-31 11:33:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance of all the 12 lines
+
+'
+2025-10-31 11:33:39 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:33:39 - improved_manufacturing_chatbot - INFO - User Question: give me the performance of all the 12 lines
+
+
+2025-10-31 11:33:39 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nWHERE pl.line_name ILIKE 'Line1' OR pl.line_name ILIKE 'Line 1' OR pl.line_name ILIKE 'Line2' OR pl.line_name ILIKE 'Line 2' OR pl.line_name ILIKE 'Line3' OR pl.line_name ILIKE 'Line 3' OR pl.line_name ILIKE 'Line4' OR pl.line_name ILIKE 'Line 4' OR pl.line_name ILIKE 'Line5' OR pl.line_name ILIKE 'Line 5' OR pl.line_name ILIKE 'Line6' OR pl.line_name ILIKE 'Line 6' OR pl.line_name ILIKE 'Line7' OR pl.line_name ILIKE 'Line 7' OR pl.line_name ILIKE 'Line8' OR pl.line_name ILIKE 'Line 8' OR pl.line_name ILIKE 'Line9' OR pl.line_name ILIKE 'Line 9' OR pl.line_name ILIKE 'Line10' OR pl.line_name ILIKE 'Line 10' OR pl.line_name ILIKE 'Line11' OR pl.line_name ILIKE 'Line 11' OR pl.line_name ILIKE 'Line12' OR pl.line_name ILIKE 'Line 12'\nORDER BY k.timestamp DESC\nLIMIT 12;", 'params': [], 'explanation': 'This query retrieves the latest performance metric for each of the 12 production lines, joining through the full site/department/line hierarchy and ordering by most recent timestamp.', 'is_conceptual': False}
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 1034 characters
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON...
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:33:43 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+WHERE pl.line_name ILIKE 'Line1' OR pl.line_name ILIKE 'Line 1' OR pl.line_name ILIKE 'Line2' OR pl.line_name ILIKE 'Line 2' OR pl.line_name ILIKE 'Line3' OR pl.line_name ILIKE 'Line 3' OR pl.line_name ILIKE 'Line4' OR pl.line_name ILIKE 'Line 4' OR pl.line_name ILIKE 'Line5' OR pl.line_name ILIKE 'Line 5' OR pl.line_name ILIKE 'Line6' OR pl.line_name ILIKE 'Line 6' OR pl.line_name ILIKE 'Line7' OR pl.line_name ILIKE 'Line 7' OR pl.line_name ILIKE 'Line8' OR pl.line_name ILIKE 'Line 8' OR pl.line_name ILIKE 'Line9' OR pl.line_name ILIKE 'Line 9' OR pl.line_name ILIKE 'Line10' OR pl.line_name ILIKE 'Line 10' OR pl.line_name ILIKE 'Line11' OR pl.line_name ILIKE 'Line 11' OR pl.line_name ILIKE 'Line12' OR pl.line_name ILIKE 'Line 12'
+ORDER BY k.timestamp DESC
+LIMIT 12;
+2025-10-31 11:33:46 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:33:46 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:33:46 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:33:46 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:33:46 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:33:54 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 11:35:30 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance of all the 12 lines
+
+
+2025-10-31 11:35:30 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance of all the 12 lines
+
+'
+2025-10-31 11:35:30 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:35:30 - improved_manufacturing_chatbot - INFO - User Question: give me the performance of all the 12 lines
+
+
+2025-10-31 11:35:30 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 12;', 'params': [], 'explanation': 'This query retrieves the latest performance metric for each of the 12 production lines, including site, area, line name, and timestamp, using the correct schema hierarchy.', 'is_conceptual': False}
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 293 characters
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON...
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:35:32 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 12;
+2025-10-31 11:35:37 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:35:37 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:35:37 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:35:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:35:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:35:46 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 11:39:31 - improved_manufacturing_chatbot - INFO - New session: 97f0cfd4
+2025-10-31 11:39:40 - improved_manufacturing_chatbot - INFO - Processing query: what are the lines in there
+2025-10-31 11:39:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'what are the lines in there'
+2025-10-31 11:39:40 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:39:40 - improved_manufacturing_chatbot - INFO - User Question: what are the lines in there
+2025-10-31 11:39:40 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name\nFROM production_lines pl\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY s.site_name, a.department_name, pl.line_name;', 'params': [], 'explanation': 'Lists all production lines with their corresponding site and department (area) names using the correct schema hierarchy.', 'is_conceptual': False}
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 236 characters
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_na...
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:39:42 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_name, a.department_name, pl.line_name;
+2025-10-31 11:39:44 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:39:44 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:39:44 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:39:44 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:39:44 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:40:33 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance details of all the lines
+2025-10-31 11:40:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance details of all the lines'
+2025-10-31 11:40:33 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:40:33 - improved_manufacturing_chatbot - INFO - User Question: give me the performance details of all the lines
+2025-10-31 11:40:33 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 100;', 'params': [], 'explanation': 'This query retrieves the performance details for all production lines, including site, area, line name, performance metric, and timestamp, ordered by the most recent data.', 'is_conceptual': False}
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 294 characters
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON...
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:40:35 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-31 11:40:37 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:40:37 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:40:37 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 11:40:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:40:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 11:40:44 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 11:41:41 - improved_manufacturing_chatbot - INFO - New session: 7ea9cd55
+2025-10-31 11:42:07 - improved_manufacturing_chatbot - INFO - Processing query: what are the lines in there
+2025-10-31 11:42:07 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'what are the lines in there'
+2025-10-31 11:42:07 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:42:07 - improved_manufacturing_chatbot - INFO - User Question: what are the lines in there
+2025-10-31 11:42:07 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name\nFROM production_lines pl\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY s.site_name, a.department_name, pl.line_name;', 'params': [], 'explanation': 'Lists all production lines with their associated site and department (area) names using the correct schema hierarchy.', 'is_conceptual': False}
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 236 characters
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_na...
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:42:10 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_name, a.department_name, pl.line_name;
+2025-10-31 11:42:12 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:42:12 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:42:12 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:42:12 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:42:12 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:42:31 - improved_manufacturing_chatbot - INFO - Processing query: give me all the lines in there
+2025-10-31 11:42:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me all the lines in there'
+2025-10-31 11:42:31 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:42:31 - improved_manufacturing_chatbot - INFO - User Question: give me all the lines in there
+2025-10-31 11:42:31 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    pl.id AS line_id\nFROM production_lines pl\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY s.site_name, a.department_name, pl.line_name;', 'params': [], 'explanation': 'Lists all production lines across all sites and departments, showing site name, area/department, line name, and line ID.', 'is_conceptual': False}
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 258 characters
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    pl.id AS line_id
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s...
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:42:32 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    pl.id AS line_id
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_name, a.department_name, pl.line_name;
+2025-10-31 11:42:36 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:42:36 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:42:37 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 11:42:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:42:37 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 11:46:29 - improved_manufacturing_chatbot - INFO - Processing query: give the performance of all the lines 
+2025-10-31 11:46:29 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give the performance of all the lines '
+2025-10-31 11:46:29 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 11:46:29 - improved_manufacturing_chatbot - INFO - User Question: give the performance of all the lines 
+2025-10-31 11:46:29 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 100;', 'params': [], 'explanation': 'This query retrieves the performance metric for all production lines across all sites and departments, showing the most recent 100 records.', 'is_conceptual': False}
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 294 characters
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON...
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 11:46:31 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-31 11:46:35 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 11:46:35 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 11:46:35 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 11:46:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 11:46:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 11:46:43 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 11:59:59 - improved_manufacturing_chatbot - INFO - New session: 453b060f
+2025-10-31 12:00:12 - improved_manufacturing_chatbot - INFO - Processing query: what are the lines in there
+
+
+2025-10-31 12:00:12 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'what are the lines in there
+
+'
+2025-10-31 12:00:12 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:00:12 - improved_manufacturing_chatbot - INFO - User Question: what are the lines in there
+
+
+2025-10-31 12:00:12 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT\n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name\nFROM production_lines pl\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY s.site_name, a.department_name, pl.line_name;', 'params': [], 'explanation': 'Lists all production lines with their corresponding site and department (area) names using the correct schema hierarchy.', 'is_conceptual': False}
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 235 characters
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_nam...
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:00:15 - improved_manufacturing_chatbot - INFO - SQL: SELECT
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name
+FROM production_lines pl
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY s.site_name, a.department_name, pl.line_name;
+2025-10-31 12:00:16 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:00:16 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:00:16 - improved_manufacturing_chatbot - INFO - Query successful: 12 rows returned
+2025-10-31 12:00:16 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:00:16 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 12
+2025-10-31 12:00:54 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance details of all the lines
+2025-10-31 12:00:54 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance details of all the lines'
+2025-10-31 12:00:54 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:00:54 - improved_manufacturing_chatbot - INFO - User Question: give me the performance details of all the lines
+2025-10-31 12:00:54 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT\n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments a ON pl.department_id = a.id\nJOIN sites s ON a.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 100;', 'params': [], 'explanation': 'This query retrieves the performance details for all production lines, including site, area, line name, performance metric, and timestamp, ordered by the most recent data.', 'is_conceptual': False}
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 293 characters
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON ...
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:00:59 - improved_manufacturing_chatbot - INFO - SQL: SELECT
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments a ON pl.department_id = a.id
+JOIN sites s ON a.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-31 12:01:00 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:01:00 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:01:00 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 12:01:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:01:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 12:01:14 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 12:01:35 - improved_manufacturing_chatbot - INFO - Processing query: give me the performance details of all the lines using a table
+2025-10-31 12:01:35 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me the performance details of all the lines using a table'
+2025-10-31 12:01:35 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:01:35 - improved_manufacturing_chatbot - INFO - User Question: give me the performance details of all the lines using a table
+2025-10-31 12:01:35 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': 'SELECT\n    s.site_name,\n    d.department_name AS area_name,\n    pl.line_name,\n    k.performance,\n    k.timestamp\nFROM kpi_metrics k\nJOIN production_lines pl ON k.line_id = pl.id\nJOIN departments d ON pl.department_id = d.id\nJOIN sites s ON d.site_id = s.id\nORDER BY k.timestamp DESC\nLIMIT 100;', 'params': [], 'explanation': 'This query retrieves the performance details for all production lines, including site name, area/department, line name, performance metric, and timestamp. It uses the mandatory schema hierarchy and proper JOINs.', 'is_conceptual': False}
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_conceptual']
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 293 characters
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON ...
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:01:38 - improved_manufacturing_chatbot - INFO - SQL: SELECT
+    s.site_name,
+    d.department_name AS area_name,
+    pl.line_name,
+    k.performance,
+    k.timestamp
+FROM kpi_metrics k
+JOIN production_lines pl ON k.line_id = pl.id
+JOIN departments d ON pl.department_id = d.id
+JOIN sites s ON d.site_id = s.id
+ORDER BY k.timestamp DESC
+LIMIT 100;
+2025-10-31 12:01:41 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:01:41 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:01:41 - improved_manufacturing_chatbot - INFO - Query successful: 48 rows returned
+2025-10-31 12:01:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:01:41 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 48
+2025-10-31 12:01:54 - improved_manufacturing_chatbot - INFO - No meaningful numeric data for time series chart
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories'
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3253 characters
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+   ...
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:02:39 - improved_manufacturing_chatbot - INFO - SQL: SELECT
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            mk.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics
+            ORDER BY line_id, timestamp DESC
+        ) mk ON mk.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time,
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason,
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections
+            ORDER BY line_id, timestamp DESC
+        ) qc ON qc.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date,
+                   next_maintenance_date
+            FROM maintenance_records
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY
+            s.site_name ASC,
+            CASE
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - Query successful: 6 rows returned
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 6
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Using factory overview formatting
+2025-10-31 12:02:40 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 2438 characters
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - Processing query: tell me about our factories
+
+
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'tell me about our factories
+
+'
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - User Question: tell me about our factories
+
+
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - Factory overview query detected - using dedicated SQL generator
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 3263 characters
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+  ...
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:02:59 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+            COALESCE(s.site_name, 'Sample Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages
+            ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Order Information
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps
+            mk.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics 
+            ORDER BY line_id, timestamp DESC
+        ) mk ON mk.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time, 
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders 
+            ORDER BY line_id, scheduled_end_time DESC
+        ) eo ON eo.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason, 
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections 
+            ORDER BY line_id, timestamp DESC
+        ) qc ON qc.line_id = pl.id
+        LEFT JOIN (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date, 
+                   next_maintenance_date
+            FROM maintenance_records 
+            ORDER BY line_id, timestamp DESC
+        ) mr ON mr.line_id = pl.id
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, 'Line1') ASC
+        LIMIT 50;
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - Query successful: 6 rows returned
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 6
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Using factory overview formatting
+2025-10-31 12:03:00 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 2438 characters
+2025-10-31 12:05:29 - improved_manufacturing_chatbot - INFO - Processing query: give me all the data about Katunayake
+2025-10-31 12:05:29 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me all the data about Katunayake'
+2025-10-31 12:05:29 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:05:29 - improved_manufacturing_chatbot - INFO - User Question: give me all the data about Katunayake
+2025-10-31 12:05:29 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT\n    s.site_name,\n    s.gm,\n    s.bu,\n    s.created_at AS site_created_at,\n    s.updated_at AS site_updated_at,\n    d.department_name,\n    d.shifts,\n    d.shift_hours,\n    d.created_at AS department_created_at,\n    d.updated_at AS department_updated_at,\n    pl.line_name,\n    pl.created_at AS line_created_at,\n    pl.updated_at AS line_updated_at,\n    k.oee,\n    k.availability,\n    k.performance,\n    k.quality,\n    k.teep,\n    k.mtbf,\n    k.mttr,\n    k.timestamp AS kpi_timestamp,\n    qo.order_number,\n    qo.item_number AS inspection_item_number,\n    qo.inspection_result,\n    qo.rejection_reason,\n    qo.rejection_quantity,\n    qo.accepted_quantity,\n    qo.timestamp AS inspection_timestamp,\n    mr.machine_id,\n    mr.maintenance_status,\n    mr.last_maintenance_date,\n    mr.next_maintenance_date,\n    mr.maintenance_history,\n    mr.timestamp AS maintenance_timestamp,\n    eo.order_number AS erp_order_number,\n    eo.order_status,\n    eo.scheduled_start_time,\n    eo.scheduled_end_time,\n    eo.actual_start_time,\n    eo.actual_end_time,\n    eo.produced_quantity,\n    eo.remaining_quantity,\n    eo.item_number AS erp_item_number,\n    eo.item_description,\n    eo.bom,\n    eo.available_quantity,\n    eo.reserved_quantity,\n    eo.ordered_quantity,\n    eo.location,\n    eo.timestamp AS erp_order_timestamp\nFROM sites s\nJOIN departments d ON d.site_id = s.id\nJOIN production_lines pl ON pl.department_id = d.id\nLEFT JOIN kpi_metrics k ON pl.id = k.line_id\nLEFT JOIN quality_inspections qo ON pl.id = qo.line_id\nLEFT JOIN maintenance_records mr ON pl.id = mr.line_id\nLEFT JOIN erp_orders eo ON pl.id = eo.line_id\nWHERE LOWER(s.site_name) ILIKE '%katunayake%'\nORDER BY COALESCE(k.timestamp, qo.timestamp, mr.timestamp, eo.timestamp) DESC\nLIMIT 100;", 'params': [], 'explanation': 'Comprehensive factory overview for Katunayake, including site, department, production line, OEE metrics, quality inspections, maintenance records, and ERP order data. Uses proper schema hierarchy and LEFT JOINs to include all operational data.', 'is_factory_overview': True}
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['error']
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: False
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: True
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:05:33 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling translation error: Generated SQL is unsafe: Dangerous operation 'CREATE' not allowed
+2025-10-31 12:05:48 - improved_manufacturing_chatbot - INFO - Processing query: give me all the data about Katunayake
+
+
+2025-10-31 12:05:48 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give me all the data about Katunayake
+
+'
+2025-10-31 12:05:48 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:05:48 - improved_manufacturing_chatbot - INFO - User Question: give me all the data about Katunayake
+
+
+2025-10-31 12:05:48 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT \n    s.site_name,\n    s.gm,\n    s.bu,\n    s.created_at AS site_created_at,\n    s.updated_at AS site_updated_at,\n    d.department_name,\n    d.shifts,\n    d.shift_hours,\n    d.created_at AS department_created_at,\n    d.updated_at AS department_updated_at,\n    pl.line_name,\n    pl.created_at AS line_created_at,\n    pl.updated_at AS line_updated_at,\n    k.oee,\n    k.availability,\n    k.performance,\n    k.quality,\n    k.teep,\n    k.mtbf,\n    k.mttr,\n    k.timestamp AS kpi_timestamp,\n    eo.order_number,\n    eo.order_status,\n    eo.scheduled_start_time,\n    eo.scheduled_end_time,\n    eo.actual_start_time,\n    eo.actual_end_time,\n    eo.produced_quantity,\n    eo.remaining_quantity,\n    eo.item_number,\n    eo.item_description,\n    eo.bom,\n    eo.available_quantity,\n    eo.reserved_quantity,\n    eo.ordered_quantity,\n    eo.location,\n    eo.timestamp AS order_timestamp,\n    qi.order_number AS inspection_order_number,\n    qi.item_number AS inspection_item_number,\n    qi.inspection_result,\n    qi.rejection_reason,\n    qi.rejection_quantity,\n    qi.accepted_quantity,\n    qi.timestamp AS inspection_timestamp,\n    mr.machine_id,\n    mr.maintenance_status,\n    mr.last_maintenance_date,\n    mr.next_maintenance_date,\n    mr.maintenance_history,\n    mr.timestamp AS maintenance_timestamp\nFROM sites s\nLEFT JOIN departments d ON d.site_id = s.id\nLEFT JOIN production_lines pl ON pl.department_id = d.id\nLEFT JOIN kpi_metrics k ON k.line_id = pl.id\nLEFT JOIN erp_orders eo ON eo.line_id = pl.id\nLEFT JOIN quality_inspections qi ON qi.line_id = pl.id\nLEFT JOIN maintenance_records mr ON mr.line_id = pl.id\nWHERE LOWER(s.site_name) ILIKE '%katunayake%'\nORDER BY k.timestamp DESC, eo.timestamp DESC, qi.timestamp DESC, mr.timestamp DESC\nLIMIT 100;", 'params': [], 'explanation': 'This query provides a comprehensive overview of all data related to the Katunayake site, including site, department, production line, OEE metrics, production orders, quality inspections, and maintenance records. It uses LEFT JOINs to include all relevant operational data and orders results by the most recent timestamps.', 'is_factory_overview': True}
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['error']
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: False
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: False
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: True
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:05:53 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling translation error: Generated SQL is unsafe: Dangerous operation 'CREATE' not allowed
+2025-10-31 12:06:09 - improved_manufacturing_chatbot - INFO - Processing query: give all the data in katunayake
+2025-10-31 12:06:09 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Calling translator.translate() with prompt: 'give all the data in katunayake'
+2025-10-31 12:06:09 - improved_manufacturing_chatbot - INFO - === TRANSLATING QUERY ===
+2025-10-31 12:06:09 - improved_manufacturing_chatbot - INFO - User Question: give all the data in katunayake
+2025-10-31 12:06:09 - improved_manufacturing_chatbot - INFO - Context: {}
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - LLM Generated: {'sql': "SELECT \n    s.site_name,\n    a.department_name AS area_name,\n    pl.line_name,\n    k.oee,\n    k.availability,\n    k.performance,\n    k.quality,\n    k.teep,\n    k.mtbf,\n    k.mttr,\n    k.timestamp AS kpi_timestamp,\n    eo.order_number,\n    eo.order_status,\n    eo.scheduled_start_time,\n    eo.scheduled_end_time,\n    eo.actual_start_time,\n    eo.actual_end_time,\n    eo.produced_quantity,\n    eo.remaining_quantity,\n    eo.item_number,\n    eo.item_description,\n    eo.bom,\n    eo.available_quantity,\n    eo.reserved_quantity,\n    eo.ordered_quantity,\n    eo.location,\n    eo.timestamp AS order_timestamp,\n    qi.inspection_result,\n    qi.rejection_reason,\n    qi.rejection_quantity,\n    qi.accepted_quantity,\n    qi.timestamp AS quality_timestamp,\n    mr.machine_id,\n    mr.maintenance_status,\n    mr.last_maintenance_date,\n    mr.next_maintenance_date,\n    mr.maintenance_history,\n    mr.timestamp AS maintenance_timestamp\nFROM sites s\nJOIN departments a ON a.site_id = s.id\nJOIN production_lines pl ON pl.department_id = a.id\nLEFT JOIN kpi_metrics k ON pl.id = k.line_id\nLEFT JOIN erp_orders eo ON pl.id = eo.line_id\nLEFT JOIN quality_inspections qi ON pl.id = qi.line_id\nLEFT JOIN maintenance_records mr ON pl.id = mr.line_id\nWHERE LOWER(s.site_name) ILIKE '%katunayake%'\nORDER BY COALESCE(k.timestamp, eo.timestamp, qi.timestamp, mr.timestamp) DESC\nLIMIT 100;", 'params': [], 'explanation': 'This query retrieves all available operational data for the Katunayake site, including OEE metrics, production orders, quality inspections, and maintenance records, using the correct schema hierarchy and joins.', 'is_factory_overview': True}
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Translation result keys: ['sql', 'params', 'explanation', 'is_factory_overview']
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_factory_overview: True
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has SQL: True
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] has error: False
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] is_conceptual: False
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Handling SQL query
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL length: 1362 characters
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] SQL preview: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.teep,
+    k.mtbf,
+    k.mttr,
+    k.timestamp AS k...
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] About to execute SQL query...
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:06:13 - improved_manufacturing_chatbot - INFO - SQL: SELECT 
+    s.site_name,
+    a.department_name AS area_name,
+    pl.line_name,
+    k.oee,
+    k.availability,
+    k.performance,
+    k.quality,
+    k.teep,
+    k.mtbf,
+    k.mttr,
+    k.timestamp AS kpi_timestamp,
+    eo.order_number,
+    eo.order_status,
+    eo.scheduled_start_time,
+    eo.scheduled_end_time,
+    eo.actual_start_time,
+    eo.actual_end_time,
+    eo.produced_quantity,
+    eo.remaining_quantity,
+    eo.item_number,
+    eo.item_description,
+    eo.bom,
+    eo.available_quantity,
+    eo.reserved_quantity,
+    eo.ordered_quantity,
+    eo.location,
+    eo.timestamp AS order_timestamp,
+    qi.inspection_result,
+    qi.rejection_reason,
+    qi.rejection_quantity,
+    qi.accepted_quantity,
+    qi.timestamp AS quality_timestamp,
+    mr.machine_id,
+    mr.maintenance_status,
+    mr.last_maintenance_date,
+    mr.next_maintenance_date,
+    mr.maintenance_history,
+    mr.timestamp AS maintenance_timestamp
+FROM sites s
+JOIN departments a ON a.site_id = s.id
+JOIN production_lines pl ON pl.department_id = a.id
+LEFT JOIN kpi_metrics k ON pl.id = k.line_id
+LEFT JOIN erp_orders eo ON pl.id = eo.line_id
+LEFT JOIN quality_inspections qi ON pl.id = qi.line_id
+LEFT JOIN maintenance_records mr ON pl.id = mr.line_id
+WHERE LOWER(s.site_name) ILIKE '%katunayake%'
+ORDER BY COALESCE(k.timestamp, eo.timestamp, qi.timestamp, mr.timestamp) DESC
+LIMIT 100;
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - Executing query using SQLAlchemy text() wrapper
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - Executing query without parameters using text() wrapper
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - Query successful: 0 rows returned
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Query execution complete. Error: None
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] DataFrame: True, Rows: 0
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Using factory overview formatting
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - No comprehensive factory data found, attempting simple query
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - === EXECUTING QUERY ===
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - SQL: 
+        SELECT 
+            COALESCE(s.site_name, 'Unknown Site') AS factory_location,
+            COALESCE(s.bu, 'Manufacturing') AS division,
+            COALESCE(s.gm, 'Not Assigned') AS general_manager,
+            COALESCE(a.department_name, 'General') AS area,
+            COALESCE(pl.line_name, 'Line1') AS line_name,
+            -- OEE Metrics converted to percentages (latest values)
+            ROUND((COALESCE(k.availability, 0) * 100)::numeric, 0) AS availability,
+            ROUND((COALESCE(k.quality, 0) * 100)::numeric, 0) AS quality,
+            ROUND((COALESCE(k.performance, 0) * 100)::numeric, 0) AS performance,
+            ROUND((COALESCE(k.oee, 0) * 100)::numeric, 0) AS oee,
+            -- Current Order Information (optional)
+            eo.order_number,
+            eo.item_number,
+            eo.scheduled_end_time,
+            COALESCE(eo.produced_quantity, 0) AS produced_quantity,
+            COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
+            eo.order_status,
+            -- Quality Control Information (optional)
+            qc.inspection_result,
+            qc.rejection_reason,
+            COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
+            COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
+            -- Maintenance Information (optional)
+            mr.maintenance_status,
+            mr.last_maintenance_date,
+            mr.next_maintenance_date,
+            -- Timestamps for data freshness
+            k.timestamp AS metrics_timestamp,
+            eo.timestamp AS order_timestamp,
+            qc.timestamp AS quality_timestamp
+        FROM sites s
+        LEFT JOIN departments a ON s.id = a.site_id
+        LEFT JOIN production_lines pl ON a.id = pl.department_id
+        -- Get latest KPI metrics for each line (if available)
+        LEFT JOIN LATERAL (
+            SELECT mk.*
+            FROM kpi_metrics mk
+            WHERE mk.line_id = pl.id
+            ORDER BY mk.timestamp DESC
+            LIMIT 1
+        ) k ON TRUE
+        -- Get current/active orders for each line (if available)
+        LEFT JOIN LATERAL (
+            SELECT eo.*
+            FROM erp_orders eo
+            WHERE eo.line_id = pl.id
+            ORDER BY eo.scheduled_end_time DESC
+            LIMIT 1
+        ) eo ON TRUE
+        -- Get latest quality control results (if available)
+        LEFT JOIN LATERAL (
+            SELECT qc.*
+            FROM quality_inspections qc
+            WHERE qc.line_id = pl.id
+            ORDER BY qc.timestamp DESC
+            LIMIT 1
+        ) qc ON TRUE
+        -- Get maintenance information (if available)
+        LEFT JOIN LATERAL (
+            SELECT mr.*
+            FROM maintenance_records mr
+            WHERE mr.line_id = pl.id
+            ORDER BY mr.timestamp DESC
+            LIMIT 1
+        ) mr ON TRUE
+        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        ORDER BY 
+            s.site_name ASC,
+            CASE 
+                WHEN COALESCE(a.department_name, '') ILIKE '%press%' THEN 1
+                WHEN COALESCE(a.department_name, '') ILIKE '%heat%' THEN 2
+                WHEN COALESCE(a.department_name, '') ILIKE '%assembly%' THEN 3
+                ELSE 4
+            END,
+            COALESCE(pl.line_name, '') ASC
+        LIMIT 50;
+        
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - ERROR - Database query failed: Query blocked: Access to table 'LATERAL' not allowed
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - No real factory data available, using basic overview
+2025-10-31 12:06:15 - improved_manufacturing_chatbot - INFO - 🔍 [DEBUG] Factory overview formatted: 1171 characters

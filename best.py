@@ -2849,7 +2849,7 @@ def main():
         st.image("AKH.png", width=90)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(-30px) translateX(-10px); margin:0;'> Factory Copilot</h2>",
+            "<h2 style='font-size:23px; transform: translateY(5px) translateX(0px); margin:0;'> Factory Copilot</h2>",
             unsafe_allow_html=True
             )
    

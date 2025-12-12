@@ -2846,7 +2846,7 @@ def main():
     st.title("🏭 Infrastructure Intelligence Agent")
     col1, col2 = st.columns([2, 20])
     with col1:
-        st.image("AKH.png", width=90)
+        st.image("PNG_Power.png", width=90)
     with col2:
         st.markdown(
             "<h2 style='font-size:23px; transform: translateY(5px) translateX(-50px); margin:0;'> Utility Copilot </h2>",

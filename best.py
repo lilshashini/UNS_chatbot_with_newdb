@@ -2846,10 +2846,10 @@ def main():
     st.title("🏭 Infrastructure Intelligence Agent")
     col1, col2 = st.columns([2, 20])
     with col1:
-        st.image("PNG_Power.png", width=180)
+        st.image("PNG_Power.png", width=200)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(4.5px) translateX(-20px); margin:0;'> Utility Copilot </h2>",
+            "<h2 style='font-size:23px; transform: translateY(4.5px) translateX(-10px); margin:0;'> Utility Copilot </h2>",
             unsafe_allow_html=True
             )
    

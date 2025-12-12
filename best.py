@@ -2849,7 +2849,7 @@ def main():
         st.image("PNG_Power.png", width=150)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(50px) translateX(-60px); margin:0;'> Utility Copilot </h2>",
+            "<h2 style='font-size:23px; transform: translateY(5px) translateX(-80px); margin:0;'> Utility Copilot </h2>",
             unsafe_allow_html=True
             )
    

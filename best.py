@@ -2849,7 +2849,7 @@ def main():
         st.image("teejay_logo.png", width=200)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(-3px) translateX(-10px); margin:0;'> Utility Copilot </h2>",
+            "<h2 style='font-size:23px; transform: translateY(-5px) translateX(-10px); margin:0;'> Utility Copilot </h2>",
             unsafe_allow_html=True
             )
    

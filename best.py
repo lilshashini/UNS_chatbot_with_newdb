@@ -2843,13 +2843,13 @@ def main():
         st.session_state.session_id = str(uuid.uuid4())[:8]
         logger.info(f"New session: {st.session_state.session_id}")
    
-    st.title("🏭 Infrastructure Intelligence Agent")
+    #st.title("🏭 Infrastructure Intelligence Agent")
     col1, col2 = st.columns([1, 15])
     with col1:
         st.image("ALL_ACCOR.svg", width=150)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(-5px) translateX(-10px); margin:0;'> Enterprise Copilot </h2>",
+            "<h2 style='font-size:23px; transform: translateY(-5px) translateX(-10px); margin:0;'> Enterprise AI Copilot </h2>",
             unsafe_allow_html=True
             )
    

@@ -2846,7 +2846,7 @@ def main():
     st.title("🏭 Infrastructure Intelligence Agent")
     col1, col2 = st.columns([2, 20])
     with col1:
-        st.image("teejay_logo.png", width=200)
+        st.image("ALL_ACCOR.svg", width=200)
     with col2:
         st.markdown(
             "<h2 style='font-size:23px; transform: translateY(-5px) translateX(-10px); margin:0;'> Enterprise Copilot </h2>",

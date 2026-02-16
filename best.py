@@ -2844,7 +2844,7 @@ def main():
         logger.info(f"New session: {st.session_state.session_id}")
    
     st.title("🏭 Infrastructure Intelligence Agent")
-    col1, col2 = st.columns([2, 20])
+    col1, col2 = st.columns([1, 15])
     with col1:
         st.image("ALL_ACCOR.svg", width=150)
     with col2:

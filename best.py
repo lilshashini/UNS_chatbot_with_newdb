@@ -2849,7 +2849,7 @@ def main():
         st.image("althinect.png", width=150)
     with col2:
         st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(-13px) translateX(-10px); margin:0;'> Enterprise AI Copilot </h2>",
+            "<h2 style='font-size:23px; transform: translateY(-15px) translateX(-10px); margin:0;'> Enterprise AI Copilot </h2>",
             unsafe_allow_html=True
             )
    

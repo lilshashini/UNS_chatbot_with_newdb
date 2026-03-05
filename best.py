@@ -1318,9 +1318,17 @@ class EnhancedResultFormatter:
             return self._format_simple_factory_overview(executor)
        
         # Get unique locations and areas for introduction
-        # NOTE: This works because the query aliases department_name to 'area'
-        unique_sites = df['factory_location'].dropna().unique()
-        unique_areas = df['area'].dropna().unique()
+        # NOTE: This works because the query aliases department_name to 'area' or 'area_name'
+        unique_sites = df['site_name'].dropna().unique() if 'site_name' in df.columns else df['factory_location'].dropna().unique()
+        
+        if 'area_name' in df.columns:
+            unique_areas = df['area_name'].dropna().unique()
+        elif 'area' in df.columns:
+            unique_areas = df['area'].dropna().unique()
+        elif 'department_name' in df.columns:
+            unique_areas = df['department_name'].dropna().unique()
+        else:
+            unique_areas = []
        
         # Create professional introduction with proper area names
         sites_text = " and ".join([f"**{site}**" for site in sorted(unique_sites)])
@@ -1335,7 +1343,7 @@ class EnhancedResultFormatter:
        
         # Process data by factory location (site) with KPI summaries
         for site in sorted(unique_sites):
-            site_data = df[df['factory_location'] == site]
+            site_data = df[df['site_name'] == site] if 'site_name' in df.columns else df[df['factory_location'] == site]
             text += f"### **{site} Factory**\n\n"
            
             # Add KPI summary for the factory
@@ -1344,6 +1352,14 @@ class EnhancedResultFormatter:
                 site_availability_avg = site_data['availability'].dropna().mean() if 'availability' in site_data.columns else 0
                 site_quality_avg = site_data['quality'].dropna().mean() if 'quality' in site_data.columns else 0
                 site_performance_avg = site_data['performance'].dropna().mean() if 'performance' in site_data.columns else 0
+                
+                # Check if values are in decimal format (e.g. 0.85 instead of 85) and scale to percentage
+                max_metric = max(site_oee_avg, site_availability_avg, site_quality_avg, site_performance_avg)
+                if max_metric > 0 and max_metric <= 1.0:
+                    site_oee_avg *= 100
+                    site_availability_avg *= 100
+                    site_quality_avg *= 100
+                    site_performance_avg *= 100
                
                 if site_oee_avg > 0:
                     text += f"**Factory KPI Summary:**\n"
@@ -1353,12 +1369,27 @@ class EnhancedResultFormatter:
                     text += f"- Average Performance: {site_performance_avg:.0f}%\n\n"
            
             # Group by area within each site - prioritize order: Press, Heat Treat, Assembly
-            areas_in_site = site_data['area'].dropna().unique()
+            if 'area_name' in site_data.columns:
+                areas_in_site = site_data['area_name'].dropna().unique()
+                area_col = 'area_name'
+            elif 'area' in site_data.columns:
+                areas_in_site = site_data['area'].dropna().unique()
+                area_col = 'area'
+            elif 'department_name' in site_data.columns:
+                areas_in_site = site_data['department_name'].dropna().unique()
+                area_col = 'department_name'
+            else:
+                areas_in_site = []
+                area_col = None
+
             area_priority = {'Press': 1, 'Heat Treat': 2, 'Heat': 2, 'Assembly': 3}
             sorted_areas = sorted(areas_in_site, key=lambda x: area_priority.get(x, 4))
            
             for area in sorted_areas:
-                area_data = site_data[site_data['area'] == area]
+                if area_col:
+                    area_data = site_data[site_data[area_col] == area]
+                else:
+                    area_data = site_data
                 text += f"#### **{area} Lines**\n\n"
                
                 # Process each line within the area
@@ -1386,15 +1417,28 @@ class EnhancedResultFormatter:
                        
                         # OEE Metrics - always show if available
                         if pd.notna(row.get('oee')) and row.get('oee', 0) > 0:
-                            availability = int(row.get('availability', 0))
-                            quality = int(row.get('quality', 0))
-                            performance = int(row.get('performance', 0))
-                            oee = int(row.get('oee', 0))
+                            availability_val = float(row.get('availability', 0))
+                            quality_val = float(row.get('quality', 0))
+                            performance_val = float(row.get('performance', 0))
+                            oee_val = float(row.get('oee', 0))
+                            
+                            # Scale to 100 if they're decimals <= 1
+                            if max(availability_val, quality_val, performance_val, oee_val) <= 1.0 and \
+                               max(availability_val, quality_val, performance_val, oee_val) > 0:
+                                availability_val *= 100
+                                quality_val *= 100
+                                performance_val *= 100
+                                oee_val *= 100
+                                
+                            availability = int(availability_val)
+                            quality = int(quality_val)
+                            performance = int(performance_val)
+                            oee = int(oee_val)
                            
-                            text += f"Availability: {availability}%\n"
-                            text += f"Quality: {quality}%\n"
-                            text += f"Performance: {performance}%\n"
-                            text += f"Overall Equipment Effectiveness (OEE): {oee}%\n" if line_display.endswith('1:') else f"OEE: {oee}%\n"
+                            text += f"- **Availability:** {availability}%\n"
+                            text += f"- **Quality:** {quality}%\n"
+                            text += f"- **Performance:** {performance}%\n"
+                            text += f"- **Overall Equipment Effectiveness (OEE):** {oee}%\n" if line_display.endswith('1:') else f"- **OEE:** {oee}%\n"
                        
                         # Order Information
                         if pd.notna(row.get('order_number')) and pd.notna(row.get('item_number')):
@@ -1409,15 +1453,15 @@ class EnhancedResultFormatter:
                                     end_date_str = end_date.strftime('%B %d, %Y')
                                     # Vary the wording between "Ongoing order" and "Currently processing"
                                     if 'Line1' in line or 'Line 1' in line_display:
-                                        text += f"Ongoing order for *Item Number {item_num}*, scheduled to end on *{end_date_str}*.\n"
+                                        text += f"- **Status:** Ongoing order for *Item Number {item_num}*, scheduled to end on *{end_date_str}*.\n"
                                     else:
-                                        text += f"Currently processing *Item Number {item_num}*, scheduled to end on *{end_date_str}*.\n"
+                                        text += f"- **Status:** Currently processing *Item Number {item_num}*, scheduled to end on *{end_date_str}*.\n"
                                 except:
-                                    text += f"Currently processing *Item Number {item_num}*.\n"
+                                    text += f"- **Status:** Currently processing *Item Number {item_num}*.\n"
                             else:
-                                text += f"Currently processing *Item Number {item_num}*.\n"
+                                text += f"- **Status:** Currently processing *Item Number {item_num}*.\n"
                            
-                            text += f"Produced quantity: {produced} units, Remaining quantity: {remaining} units.\n"
+                            text += f"- **Production:** Produced quantity: {produced} units, Remaining quantity: {remaining} units.\n"
                        
                         # Quality Control Information - vary the wording
                         if pd.notna(row.get('inspection_result')):
@@ -1427,18 +1471,18 @@ class EnhancedResultFormatter:
                            
                             if 'fail' in inspection_result and rejection_qty > 0:
                                 if 'Line1' in line or 'Line 1' in line_display:
-                                    text += f"Recent inspection failed — *{rejection_qty} items rejected due to {rejection_reason}*.\n"
+                                    text += f"- **Inspection:** Recent inspection failed — *{rejection_qty} items rejected due to {rejection_reason}*.\n"
                                 else:
-                                    text += f"Inspection failed — *{rejection_qty} items rejected due to {rejection_reason}.*\n"
+                                    text += f"- **Inspection:** Inspection failed — *{rejection_qty} items rejected due to {rejection_reason}.*\n"
                             elif 'pass' in inspection_result:
-                                text += f"Quality inspection passed successfully.\n"
+                                text += f"- **Inspection:** Quality inspection passed successfully.\n"
                         elif pd.notna(row.get('rejection_quantity')) and row.get('rejection_quantity', 0) > 0:
                             rejection_qty = int(row.get('rejection_quantity', 0))
                             rejection_reason = row.get('rejection_reason', 'quality issues')
                             if 'Line1' in line or 'Line 1' in line_display:
-                                text += f"Recent inspection failed — *{rejection_qty} items rejected due to {rejection_reason}*.\n"
+                                text += f"- **Inspection:** Recent inspection failed — *{rejection_qty} items rejected due to {rejection_reason}*.\n"
                             else:
-                                text += f"Inspection failed — *{rejection_qty} items rejected due to {rejection_reason}.*\n"
+                                text += f"- **Inspection:** Inspection failed — *{rejection_qty} items rejected due to {rejection_reason}.*\n"
                        
                         text += "\n"
            
@@ -1510,7 +1554,7 @@ class EnhancedResultFormatter:
         # and new column names (gm, bu, department_name)
         sql = """
         SELECT
-            COALESCE(s.site_name, 'Unknown Site') AS factory_location,
+            COALESCE(s.site_name, 'Unknown Site') AS site_name,
             COALESCE(s.bu, 'Manufacturing') AS division,
             COALESCE(s.gm, 'Not Assigned') AS general_manager,
             COALESCE(a.department_name, 'General') AS area,
@@ -1599,9 +1643,17 @@ class EnhancedResultFormatter:
         """Format factory overview using real database data with enhanced KPI presentation"""
        
         # Get unique locations and areas for introduction
-        # NOTE: This works because the query aliases department_name to 'area'
-        unique_sites = df['factory_location'].dropna().unique()
-        unique_areas = df['area'].dropna().unique()
+        # NOTE: This works because the query aliases department_name to 'area' or 'area_name'
+        unique_sites = df['site_name'].dropna().unique() if 'site_name' in df.columns else df['factory_location'].dropna().unique()
+        
+        if 'area_name' in df.columns:
+            unique_areas = df['area_name'].dropna().unique()
+        elif 'area' in df.columns:
+            unique_areas = df['area'].dropna().unique()
+        elif 'department_name' in df.columns:
+            unique_areas = df['department_name'].dropna().unique()
+        else:
+            unique_areas = []
        
         # Create professional introduction specifically for Biyagama and Katunayake
         sites_text = " and ".join([f"**{site}**" for site in sorted(unique_sites)])
@@ -1617,7 +1669,7 @@ class EnhancedResultFormatter:
        
         # Process data by factory location (site) with KPI summaries
         for site in sorted(unique_sites):
-            site_data = df[df['factory_location'] == site]
+            site_data = df[df['site_name'] == site] if 'site_name' in df.columns else df[df['factory_location'] == site]
             text += f"### **{site} Factory**\n\n"
            
             # Add enhanced KPI summary for the factory
@@ -1626,7 +1678,15 @@ class EnhancedResultFormatter:
                 site_availability_avg = site_data['availability'].dropna().mean() if 'availability' in site_data.columns else 0
                 site_quality_avg = site_data['quality'].dropna().mean() if 'quality' in site_data.columns else 0
                 site_performance_avg = site_data['performance'].dropna().mean() if 'performance' in site_data.columns else 0
-               
+                
+                # Check if values are in decimal format (e.g. 0.85 instead of 85) and scale to percentage
+                max_metric = max(site_oee_avg, site_availability_avg, site_quality_avg, site_performance_avg)
+                if max_metric > 0 and max_metric <= 1.0:
+                    site_oee_avg *= 100
+                    site_availability_avg *= 100
+                    site_quality_avg *= 100
+                    site_performance_avg *= 100
+                
                 # Enhanced KPI display with performance indicators
                 if site_oee_avg > 0 or site_availability_avg > 0:
                     text += f"**🏭 Factory Performance Summary:**\n"
@@ -1653,12 +1713,27 @@ class EnhancedResultFormatter:
                     text += f"**👨‍💼 General Manager:** {managers[0]}\n\n"
            
             # Group by area within each site - prioritize order: Press, Heat Treat, Assembly
-            areas_in_site = site_data['area'].dropna().unique()
+            if 'area_name' in site_data.columns:
+                areas_in_site = site_data['area_name'].dropna().unique()
+                area_col = 'area_name'
+            elif 'area' in site_data.columns:
+                areas_in_site = site_data['area'].dropna().unique()
+                area_col = 'area'
+            elif 'department_name' in site_data.columns:
+                areas_in_site = site_data['department_name'].dropna().unique()
+                area_col = 'department_name'
+            else:
+                areas_in_site = []
+                area_col = None
+
             area_priority = {'Press': 1, 'Heat Treat': 2, 'Heat': 2, 'Assembly': 3}
             sorted_areas = sorted(areas_in_site, key=lambda x: area_priority.get(x, 4))
            
             for area in sorted_areas:
-                area_data = site_data[site_data['area'] == area]
+                if area_col:
+                    area_data = site_data[site_data[area_col] == area]
+                else:
+                    area_data = site_data
                 text += f"#### **{area} Lines**\n\n"
                
                 # Process each line within the area
@@ -1685,10 +1760,23 @@ class EnhancedResultFormatter:
                         text += f"**{line_display}:**\n"
                        
                         # Enhanced OEE Metrics display - always show if available
-                        availability = int(row.get('availability', 0)) if pd.notna(row.get('availability')) else 0
-                        quality = int(row.get('quality', 0)) if pd.notna(row.get('quality')) else 0
-                        performance = int(row.get('performance', 0)) if pd.notna(row.get('performance')) else 0
-                        oee = int(row.get('oee', 0)) if pd.notna(row.get('oee')) else 0
+                        availability_val = float(row.get('availability', 0)) if pd.notna(row.get('availability')) else 0
+                        quality_val = float(row.get('quality', 0)) if pd.notna(row.get('quality')) else 0
+                        performance_val = float(row.get('performance', 0)) if pd.notna(row.get('performance')) else 0
+                        oee_val = float(row.get('oee', 0)) if pd.notna(row.get('oee')) else 0
+                        
+                        # Scale to 100 if they're decimals <= 1
+                        if max(availability_val, quality_val, performance_val, oee_val) <= 1.0 and \
+                           max(availability_val, quality_val, performance_val, oee_val) > 0:
+                            availability_val *= 100
+                            quality_val *= 100
+                            performance_val *= 100
+                            oee_val *= 100
+                            
+                        availability = int(availability_val)
+                        quality = int(quality_val)
+                        performance = int(performance_val)
+                        oee = int(oee_val)
                        
                         # Show KPI values if any metrics are available (including 0 values for debugging)
                         if availability >= 0 or quality >= 0 or performance >= 0 or oee >= 0:
@@ -1849,7 +1937,7 @@ class EnhancedResultFormatter:
         text += "**Geographic and Organizational Structure**\n\n"
        
         # Get site names for analysis
-        site_names = sites_info['factory_location'].dropna().unique()
+        site_names = sites_info['site_name'].dropna().unique() if 'site_name' in sites_info.columns else sites_info['factory_location'].dropna().unique()
         business_units = sites_info['division'].dropna().unique()
        
         if len(site_names) >= 2:

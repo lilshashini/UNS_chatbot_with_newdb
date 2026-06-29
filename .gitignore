@@ -1,5 +1,6 @@
 # Ignore virtual environment
 .venv/
+venv/
 
 # Ignore environment files
 .env
@@ -8,6 +9,9 @@
 __pycache__/
 *.pyc
 *.log
-venv/
+
+# Ignore Node.js dependencies
 node_modules/
+
+# Ignore macOS metadata
 .DS_Store

@@ -1328,15 +1328,21 @@ class QueryExecutor:
         """Get PostgreSQL connection string with proper URL handling"""
         db_host = os.getenv("SUPABASE_DB_HOST")
         db_password = os.getenv("SUPABASE_DB_PASSWORD")
-        
+        supabase_url = os.getenv("SUPABASE_URL", "")
         if not db_host or not db_password:
-            raise ValueError(
-                "Please set SUPABASE_DB_HOST and SUPABASE_DB_PASSWORD in .env file"
-            )
-        
-        # Example: postgresql://user:password@host:port/dbname
-        # Using the host from the old file as an example, replace with your actual new host if different
-        return f"postgresql://postgres.ozzadjwksgwnvclxqxyb:{db_password}@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
+            raise ValueError("Please set SUPABASE_DB_HOST and SUPABASE_DB_PASSWORD in .env file")
+        project_ref = ""
+        if "//" in supabase_url and "." in supabase_url:
+            project_ref = supabase_url.split("//")[1].split(".")[0]
+        elif "db." in db_host:
+            project_ref = db_host.split("db.")[1].split(".")[0]
+        if "pooler.supabase.com" in db_host:
+            user = f"postgres.{project_ref}" if project_ref else "postgres"
+            port = "6543"
+        else:
+            user = "postgres"
+            port = "5432"
+        return f"postgresql://{user}:{db_password}@{db_host}:{port}/postgres"
         
 
 # =============================================================================

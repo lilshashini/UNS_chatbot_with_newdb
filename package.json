@@ -1,0 +1,25 @@
+{
+  "name": "uns_chatbot_with_newdb",
+  "version": "1.0.0",
+  "main": "datascript.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lilshashini/Enterprise-AI-Copilot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lilshashini/Enterprise-AI-Copilot/issues"
+  },
+  "homepage": "https://github.com/lilshashini/Enterprise-AI-Copilot#readme",
+  "description": "",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "dotenv": "^17.4.2",
+    "socket.io-client": "^4.8.3"
+  }
+}

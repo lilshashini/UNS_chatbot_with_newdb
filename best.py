@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, text
 from openai import AzureOpenAI
 
 
-load_dotenv()
+load_dotenv(override=True)
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
@@ -163,7 +163,7 @@ class SimpleSQLGenerator:
         # Start with sites and build from there
         # SCHEMA: sites -> departments -> production_lines -> data tables
         sql = """
-        SELECT
+        SELECT DISTINCT ON (s.site_name, a.department_name, pl.line_name)
             COALESCE(s.site_name, 'Sample Site') AS factory_location,
             COALESCE(s.bu, 'Manufacturing') AS division,
             COALESCE(s.gm, 'Not Assigned') AS general_manager,
@@ -220,17 +220,12 @@ class SimpleSQLGenerator:
             FROM maintenance_records
             ORDER BY line_id, timestamp DESC
         ) mr ON mr.line_id = pl.id
-        WHERE s.site_name IN ('Biyagama', 'Katunayake')
+        WHERE s.site_name IN ('Biyagama', 'Katunayake') AND pl.line_name IS NOT NULL
         ORDER BY
             s.site_name ASC,
-            CASE
-                WHEN COALESCE(a.department_name, 'General') ILIKE '%press%' THEN 1
-                WHEN COALESCE(a.department_name, 'General') ILIKE '%heat%' THEN 2
-                WHEN COALESCE(a.department_name, 'General') ILIKE '%assembly%' THEN 3
-                ELSE 4
-            END,
-            COALESCE(pl.line_name, 'Line1') ASC
-        LIMIT 50;
+            a.department_name ASC,
+            pl.line_name ASC
+        LIMIT 200;
         """
        
         return {
@@ -1289,18 +1284,32 @@ class QueryExecutor:
                     pass
    
     def _get_postgres_connection_string(self) -> str:
-        """Get PostgreSQL connection string with proper URL handling"""
+        """Get PostgreSQL connection string with proper URL handling dynamically from .env"""
         db_host = os.getenv("SUPABASE_DB_HOST")
         db_password = os.getenv("SUPABASE_DB_PASSWORD")
-       
+        supabase_url = os.getenv("SUPABASE_URL", "")
+        
         if not db_host or not db_password:
             raise ValueError(
                 "Please set SUPABASE_DB_HOST and SUPABASE_DB_PASSWORD in .env file"
             )
-       
-        # Example: postgresql://user:password@host:port/dbname
-        # Using the host from the old file as an example, replace with your actual new host if different
-        return f"postgresql://postgres.ozzadjwksgwnvclxqxyb:{db_password}@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
+        
+        # Extract project reference if present
+        project_ref = ""
+        if "//" in supabase_url and "." in supabase_url:
+            project_ref = supabase_url.split("//")[1].split(".")[0]
+        elif "db." in db_host:
+            project_ref = db_host.split("db.")[1].split(".")[0]
+
+        # Check if using connection pooler or direct host connection
+        if "pooler.supabase.com" in db_host:
+            user = f"postgres.{project_ref}" if project_ref else "postgres"
+            port = "6543"
+        else:
+            user = "postgres"
+            port = "5432"
+            
+        return f"postgresql://{user}:{db_password}@{db_host}:{port}/postgres"
        
 # =============================================================================
 # ENHANCED RESULT FORMATTER (Updated for new schema)
@@ -2930,16 +2939,13 @@ def main():
         import uuid
         st.session_state.session_id = str(uuid.uuid4())[:8]
         logger.info(f"New session: {st.session_state.session_id}")
-   
-    #st.title("🏭 Infrastructure Intelligence Agent")
-    col1, col2 = st.columns([1, 15])
+        
+    # Use Streamlit columns with vertical alignment
+    col1, col2 = st.columns([1, 15], vertical_alignment="center")
     with col1:
-        st.image("althinect.png", width=150)
+        st.image("althinect.png", width=60)
     with col2:
-        st.markdown(
-            "<h2 style='font-size:23px; transform: translateY(-15px) translateX(-10px); margin:0;'> Enterprise AI Copilot </h2>",
-            unsafe_allow_html=True
-            )
+        st.markdown("<h2 style='margin: 0; padding-top: 10px; font-size: 32px; font-weight: 600;'>Enterprise AI Copilot</h2>", unsafe_allow_html=True)
    
     # Initialize clients
     supabase, azure_client = init_clients()

@@ -127,9 +127,10 @@ class SQLValidator:
        
         for table in tables:
             if table.lower() not in Config.ALLOWED_TABLES:
-                # Allow tables aliased in WITH clauses
-                with_clause_pattern = r'\bWITH\s+(\w+)\s+AS\b'
-                with_tables = re.findall(with_clause_pattern, sql_upper)
+                # Allow CTE aliases defined anywhere in the WITH clause.
+                # The original pattern only matched the first CTE name; this
+                # captures every "name AS (" occurrence (all CTEs in the query).
+                with_tables = re.findall(r'\b(\w+)\s+AS\s*\(', sql_upper)
                 if table.lower() not in [t.lower() for t in with_tables]:
                     return False, f"Access to table '{table}' not allowed"
        

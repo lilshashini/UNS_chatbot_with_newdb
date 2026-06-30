@@ -19,6 +19,10 @@ load_dotenv(override=True)
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+    
 def setup_logging():
     """Configure logging for the application"""
     logger = logging.getLogger('improved_manufacturing_chatbot')

@@ -853,7 +853,13 @@ For factory overview queries:
         json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
         if json_match:
             try:
-                result = json.loads(json_match.group())
+                raw_json = json_match.group()
+                # The LLM sometimes uses "\" + newline as a SQL line-continuation
+                # inside JSON strings, which is not a valid JSON escape sequence.
+                # Replace backslash-newline (and backslash-carriage-return-newline)
+                # with a single space so json.loads can parse the response cleanly.
+                raw_json = raw_json.replace('\\\r\n', ' ').replace('\\\n', ' ')
+                result = json.loads(raw_json)
                 logger.info(f"LLM Generated: {result}")
                 return result
             except json.JSONDecodeError as json_err:

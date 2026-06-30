@@ -115,8 +115,9 @@ class SQLValidator:
             if keyword in sql_upper:
                 return False, f"Dangerous operation '{keyword}' not allowed"
        
-        # Must be a SELECT query
-        if not sql_upper.strip().startswith("SELECT"):
+        # Must be a SELECT query or a CTE (WITH ... AS (...) SELECT ...)
+        sql_stripped = sql_upper.strip()
+        if not (sql_stripped.startswith("SELECT") or sql_stripped.startswith("WITH")):
             return False, "Only SELECT queries are allowed"
        
         # Check for allowed tables

@@ -676,26 +676,23 @@ class ImprovedNLToSQLTranslator:
    
     def _build_system_prompt(self) -> str:
         """Build system prompt that encourages clean SQL generation (UPDATED)"""
-       
+        
         # Get actual schema from database
         schema_info = self._get_schema_info()
         schema_text = "\nDATABASE SCHEMA (Key Tables):\n"
-       
+        
         # Highlight the most important tables for manufacturing queries
-        # UPDATED key tables
         key_tables = [
             'sites', 'departments', 'production_lines', 'erp_orders',
             'kpi_metrics', 'quality_inspections', 'maintenance_records',
             'dashboard_status'
         ]
-       
+        
         for table in key_tables:
             if table in schema_info:
                 columns = ', '.join(schema_info[table])
                 schema_text += f"- {table}: {columns}\n"
-       
-        # Build the prompt without using f-string for the template part
-        # UPDATED with new hierarchy, tables, and columns
+        
         prompt = """You are a SQL expert for a manufacturing database. Generate SCHEMA-ACCURATE, CLEAN PostgreSQL queries.
 CRITICAL: Always match user intent to the CORRECT TABLE based on schema. Wrong table = wrong results!
 {}
@@ -703,131 +700,61 @@ MANDATORY DATABASE SCHEMA HIERARCHY:
 - sites: id (PK), site_name, gm, bu
 - departments: id (PK), site_id (FK to sites.id), department_name
 - production_lines: id (PK), department_id (FK to departments.id), line_name
-- kpi_metrics: id (PK), line_id (FK to production_lines.id), availability, quality, performance, oee, teep, mttr, mtbf, timestamp
+- kpi_metrics: id (PK), line_id (FK to production_lines.id), availability, quality, performance, oee, teep, mtbf, mttr, timestamp
 - quality_inspections: id (PK), line_id (FK to production_lines.id), order_number, item_number, inspection_result, rejection_reason, rejection_quantity, accepted_quantity, timestamp
 - maintenance_records: id (PK), line_id (FK to production_lines.id), machine_id, maintenance_status, last_maintenance_date, next_maintenance_date, maintenance_history, timestamp
 - erp_orders: id (PK), line_id (FK to production_lines.id), order_number, order_status, scheduled_start_time, scheduled_end_time, produced_quantity, remaining_quantity, item_number, timestamp
+
+CRITICAL PERFORMANCE RULES (TO PREVENT TIMEOUTS):
+1. NEVER use correlated subqueries inside LEFT JOINs (e.g., NEVER do `LEFT JOIN kpi_metrics k ON ... AND k.timestamp = (SELECT MAX(...) FROM ...)`)
+2. Always use Common Table Expressions (WITH clauses) using `DISTINCT ON` to isolate the latest records before joining.
+3. Always ORDER BY timestamp DESC inside your CTEs.
+4. Limit the final output to 200 rows maximum.
+
 TABLE SELECTION GUIDE:
 - "soda recipe", "batch control", "production parameters" → s88_batch_control table
 - "OEE", "availability", "quality", "performance" → kpi_metrics table
 - "maintenance", "MTBF", "MTTR" → maintenance_records (+ kpi_metrics for metrics)
 - "quality control", "rejection", "inspection" → quality_inspections table
 - "orders", "production quantity", "scheduled" → erp_orders table
-- Simple data requests: SELECT directly from target table
-- Context needed: JOIN with hierarchy tables
-MANDATORY JOIN RULES:
-1. ALWAYS use proper JOINs - never assume columns exist in tables without checking schema
-2. To filter by site name: JOIN departments->sites and use sites.site_name
-3. To filter by area/department name: JOIN departments and use departments.department_name
-4. All data tables (kpi_metrics, quality_inspections, etc.) connect via line_id to production_lines.id
-5. Use ORDER BY timestamp DESC LIMIT 1 for "current" data
-6. For line names: Handle both "Line1" (no space) and "Line 1" (with space) formats using ILIKE with multiple patterns
-CRITICAL RULES FOR CLEAN SQL:
-1. Use exact column names from schema - do not invent columns
-2. Always JOIN through the hierarchy: sites->departments->production_lines->data_tables
-3. For VARCHAR/CHAR fields, use LOWER() + ILIKE '%value%' for flexible matching
-4. For exact numeric/date matches, use = operator
-5. NO parameterized queries - embed values directly in SQL
-6. Always ORDER BY timestamp DESC for time-series data
-7. Use reasonable LIMIT values (1 for "current", 10-100 for lists)
-FACTORY OVERVIEW QUERIES:
-For queries like "Tell me about our factories", "Factory overview", "About our factories":
-- Generate the comprehensive factory overview SQL that joins all relevant tables
-- MUST include "is_factory_overview": true in the response
-- Use proper hierarchy: sites->departments->production_lines with LEFT JOIN to all operational tables
-- Include OEE metrics, order data, quality control, and maintenance information
-CORRECT EXAMPLE PATTERNS (Updated for new schema):
-- "Current OEE for Biyagama Press Line1" →
-SELECT
-    s.site_name,
-    a.department_name AS area_name,
-    pl.line_name,
-    k.oee,
-    k.availability,
-    k.performance,
-    k.quality,
-    k.timestamp
-FROM kpi_metrics k
-JOIN production_lines pl ON k.line_id = pl.id
-JOIN departments a ON pl.department_id = a.id
-JOIN sites s ON a.site_id = s.id
-WHERE LOWER(s.site_name) ILIKE '%biyagama%' AND LOWER(a.department_name) ILIKE '%press%'
-  AND (pl.line_name ILIKE 'Line1' OR pl.line_name ILIKE 'Line 1' OR pl.line_name ILIKE '%Line%1%')
-ORDER BY k.timestamp DESC
-LIMIT 1;
+
+CORRECT EXAMPLE PATTERNS (Optimized CTEs):
+- "Show me a report for Biyagama" or "Current OEE for Biyagama" →
+WITH latest_kpi AS (
+    SELECT DISTINCT ON (line_id) line_id, oee, availability, performance, quality, timestamp
+    FROM kpi_metrics
+    ORDER BY line_id, timestamp DESC
+)
+SELECT s.site_name, a.department_name AS area_name, pl.line_name, k.oee, k.availability, k.performance, k.quality, k.timestamp
+FROM sites s
+JOIN departments a ON s.site_id = s.id
+JOIN production_lines pl ON pl.department_id = a.id
+JOIN latest_kpi k ON k.line_id = pl.id
+WHERE LOWER(s.site_name) ILIKE '%biyagama%'
+ORDER BY s.site_name, a.department_name, pl.line_name
+LIMIT 100;
+
 - "Which machines need maintenance?" →
-SELECT
-    s.site_name,
-    a.department_name AS area_name,
-    pl.line_name,
-    mr.machine_id,
-    mr.maintenance_status,
-    mr.last_maintenance_date,
-    mr.next_maintenance_date,
-    mr.timestamp
-FROM maintenance_records mr
-JOIN production_lines pl ON mr.line_id = pl.id
-JOIN departments a ON pl.department_id = a.id
-JOIN sites s ON a.site_id = s.id
-WHERE (mr.maintenance_status IS NULL OR LOWER(mr.maintenance_status) NOT IN ('completed', 'done'))
-ORDER BY mr.timestamp DESC
+WITH latest_maint AS (
+    SELECT DISTINCT ON (line_id) line_id, machine_id, maintenance_status, last_maintenance_date, next_maintenance_date, timestamp
+    FROM maintenance_records
+    ORDER BY line_id, timestamp DESC
+)
+SELECT s.site_name, a.department_name AS area_name, pl.line_name, m.machine_id, m.maintenance_status, m.last_maintenance_date, m.next_maintenance_date, m.timestamp
+FROM sites s
+JOIN departments a ON a.site_id = s.id
+JOIN production_lines pl ON pl.department_id = a.id
+JOIN latest_maint m ON m.line_id = pl.id
+WHERE m.maintenance_status IS NULL OR LOWER(m.maintenance_status) NOT IN ('completed', 'done')
+ORDER BY m.timestamp DESC
 LIMIT 100;
-- "What is the MTBF for Machine-91?" →
-SELECT
-    s.site_name,
-    a.department_name AS area_name,
-    pl.line_name,
-    mr.machine_id,
-    k.mtbf,
-    k.timestamp
-FROM maintenance_records mr
-JOIN production_lines pl ON mr.line_id = pl.id
-JOIN departments a ON pl.department_id = a.id
-JOIN sites s ON a.site_id = s.id
-JOIN kpi_metrics k ON pl.id = k.line_id
-WHERE LOWER(mr.machine_id) ILIKE '%machine-91%'
-ORDER BY k.timestamp DESC
-LIMIT 1;
-- "List all machines with overdue maintenance" →
-SELECT
-    s.site_name,
-    a.department_name AS area_name,
-    pl.line_name,
-    mr.machine_id,
-    mr.maintenance_status,
-    mr.last_maintenance_date,
-    mr.next_maintenance_date,
-    mr.timestamp
-FROM maintenance_records mr
-JOIN production_lines pl ON mr.line_id = pl.id
-JOIN departments a ON pl.department_id = a.id
-JOIN sites s ON a.site_id = s.id
-WHERE LOWER(mr.maintenance_status) ILIKE '%overdue%'
-ORDER BY mr.timestamp DESC
-LIMIT 100;
-- "Show soda recipe and production parameters for recent batch controls" →
-SELECT
-    line_id,
-    soda_recipe,
-    production_parameters,
-    timestamp
-FROM s88_batch_control
-ORDER BY timestamp DESC
-LIMIT 20;
-SCHEMA-ACCURATE QUERY RULES:
-1. Always match user intent to the correct table based on schema
-2. Batch control data (soda recipes, production parameters) comes from s88_batch_control table
-3. Manufacturing KPIs (OEE, availability, quality) come from kpi_metrics table
-4. Maintenance data comes from maintenance_records table
-5. Quality control data comes from quality_inspections table
-6. Production orders come from erp_orders table
-7. Use simple SELECT when user asks for basic data, complex JOINs only when context is needed
+
 RESPONSE FORMAT (JSON):
 {}
 For conceptual questions (definitions, explanations):
 {}
 Generate clean, executable SQL following the mandatory schema hierarchy. Always use proper JOINs."""
-       
+        
         # Format with the schema and JSON examples
         json_example = '''{
   "sql": "Clean SQL query here",
@@ -842,13 +769,13 @@ For factory overview queries:
   "explanation": "Comprehensive factory overview with OEE, orders, and quality data",
   "is_factory_overview": true
 }'''
-       
+        
         conceptual_example = '''{
   "is_conceptual": true,
   "answer": "Your explanation here",
   "explanation": "This is a conceptual question"
 }'''
-       
+        
         return prompt.format(schema_text, json_example, conceptual_example)
     def translate(self, question: str, context: Dict = None) -> Dict[str, Any]:
         """Translate natural language to SQL"""

@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import difflib
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional, Any
 import streamlit as st
@@ -233,7 +234,99 @@ class SimpleSQLGenerator:
             'explanation': 'Factory overview with comprehensive operational data from database',
             'is_factory_overview': True
         }
-   
+
+    @staticmethod
+    def generate_site_report_query(site_name: str) -> Dict[str, Any]:
+        """Generate a comprehensive per-site factory report (KPI, orders, quality, maintenance).
+        site_name should already be the corrected/canonical spelling from the DB.
+        """
+        sql = f"""
+        WITH latest_kpi AS (
+            SELECT DISTINCT ON (km.line_id)
+                km.line_id, km.oee, km.availability, km.performance, km.quality,
+                km.teep, km.mtbf, km.mttr, km.timestamp
+            FROM kpi_metrics km
+            ORDER BY km.line_id, km.timestamp DESC
+        ),
+        latest_orders AS (
+            SELECT DISTINCT ON (eo.line_id)
+                eo.line_id, eo.order_number, eo.order_status,
+                eo.scheduled_start_time, eo.scheduled_end_time,
+                eo.produced_quantity, eo.remaining_quantity,
+                eo.item_number, eo.item_description, eo.timestamp
+            FROM erp_orders eo
+            ORDER BY eo.line_id, eo.timestamp DESC
+        ),
+        latest_quality AS (
+            SELECT DISTINCT ON (qi.line_id)
+                qi.line_id, qi.order_number, qi.item_number,
+                qi.inspection_result, qi.rejection_reason,
+                qi.rejection_quantity, qi.accepted_quantity, qi.timestamp
+            FROM quality_inspections qi
+            ORDER BY qi.line_id, qi.timestamp DESC
+        ),
+        latest_maint AS (
+            SELECT DISTINCT ON (mr.line_id)
+                mr.line_id, mr.machine_id, mr.maintenance_status,
+                mr.last_maintenance_date, mr.next_maintenance_date, mr.timestamp
+            FROM maintenance_records mr
+            ORDER BY mr.line_id, mr.timestamp DESC
+        )
+        SELECT
+            s.site_name,
+            d.department_name AS area_name,
+            pl.line_name,
+            k.oee, k.availability, k.performance, k.quality, k.teep, k.mtbf, k.mttr,
+            k.timestamp AS kpi_timestamp,
+            o.order_number, o.order_status,
+            o.scheduled_start_time, o.scheduled_end_time,
+            o.produced_quantity, o.remaining_quantity,
+            o.item_number AS order_item_number, o.item_description,
+            o.timestamp AS order_timestamp,
+            q.inspection_result, q.rejection_reason,
+            q.rejection_quantity, q.accepted_quantity,
+            q.timestamp AS quality_timestamp,
+            m.machine_id, m.maintenance_status,
+            m.last_maintenance_date, m.next_maintenance_date,
+            m.timestamp AS maintenance_timestamp
+        FROM sites s
+        JOIN departments d ON d.site_id = s.id
+        JOIN production_lines pl ON pl.department_id = d.id
+        LEFT JOIN latest_kpi k ON k.line_id = pl.id
+        LEFT JOIN latest_orders o ON o.line_id = pl.id
+        LEFT JOIN latest_quality q ON q.line_id = pl.id
+        LEFT JOIN latest_maint m ON m.line_id = pl.id
+        WHERE s.site_name ILIKE '%{site_name}%'
+        ORDER BY s.site_name, d.department_name, pl.line_name
+        LIMIT 200;
+        """
+        return {
+            'sql': sql.strip(),
+            'params': [],
+            'explanation': (
+                f'Comprehensive factory report for "{site_name}" including latest KPI metrics, '
+                'production orders, quality inspections, and maintenance records per line.'
+            ),
+            'is_factory_overview': True
+        }
+
+    # Known canonical site names used for fuzzy matching of user input
+    KNOWN_SITES = ['Biyagama', 'Katunayake']
+
+    @staticmethod
+    def resolve_site_name(user_input: str) -> str:
+        """Fuzzy-match a user-typed site name to the closest known canonical site name.
+        Falls back to the raw input if nothing is close enough.
+        """
+        candidates = [s.lower() for s in SimpleSQLGenerator.KNOWN_SITES]
+        matches = difflib.get_close_matches(
+            user_input.lower(), candidates, n=1, cutoff=0.5
+        )
+        if matches:
+            idx = candidates.index(matches[0])
+            return SimpleSQLGenerator.KNOWN_SITES[idx]
+        return user_input  # use as-is; ILIKE will still try its best
+
     @staticmethod
     def generate_simple_factory_overview_query() -> Dict[str, Any]:
         """Generate real database factory overview query - no hardcoded values"""
@@ -806,7 +899,22 @@ For factory overview queries:
         if any(kw in question.lower() for kw in factory_overview_keywords):
             logger.info("Factory overview query detected - using dedicated SQL generator")
             return SimpleSQLGenerator.generate_factory_overview_query()
-       
+
+        # Check for site-specific report queries:
+        # e.g. "give a full report about biygama factory", "report on katunayake"
+        site_report_pattern = re.search(
+            r'(?:full\s+)?report\s+(?:about|on|for|of)\s+([\w\s]+?)'
+            r'(?:\s+factory|\s+plant|\s+site|\s+facilities?)?\s*$',
+            question.lower()
+        )
+        if site_report_pattern:
+            raw_site = site_report_pattern.group(1).strip()
+            site_name = SimpleSQLGenerator.resolve_site_name(raw_site)
+            logger.info(
+                f"Site report query detected — raw: '{raw_site}', resolved: '{site_name}'"
+            )
+            return SimpleSQLGenerator.generate_site_report_query(site_name)
+
         # Try LLM for other queries
         if self.azure_client:
             try:

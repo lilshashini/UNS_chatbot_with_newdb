@@ -19,9 +19,6 @@ load_dotenv(override=True)
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
     
 def setup_logging():
     """Configure logging for the application"""
@@ -167,68 +164,64 @@ class SimpleSQLGenerator:
         # Start with sites and build from there
         # SCHEMA: sites -> departments -> production_lines -> data tables
         sql = """
+        WITH latest_kpi AS (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics
+            ORDER BY line_id, timestamp DESC
+        ),
+        latest_orders AS (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time,
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders
+            ORDER BY line_id, scheduled_end_time DESC
+        ),
+        latest_qc AS (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason,
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections
+            ORDER BY line_id, timestamp DESC
+        ),
+        latest_maintenance AS (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date,
+                   next_maintenance_date
+            FROM maintenance_records
+            ORDER BY line_id, timestamp DESC
+        )
         SELECT DISTINCT ON (s.site_name, a.department_name, pl.line_name)
             COALESCE(s.site_name, 'Sample Site') AS factory_location,
             COALESCE(s.bu, 'Manufacturing') AS division,
             COALESCE(s.gm, 'Not Assigned') AS general_manager,
             COALESCE(a.department_name, 'General') AS area,
             COALESCE(pl.line_name, 'Line1') AS line_name,
-            -- OEE Metrics converted to percentages
             ROUND((COALESCE(mk.availability, 0) * 100)::numeric, 0) AS availability,
             ROUND((COALESCE(mk.quality, 0) * 100)::numeric, 0) AS quality,
             ROUND((COALESCE(mk.performance, 0) * 100)::numeric, 0) AS performance,
             ROUND((COALESCE(mk.oee, 0) * 100)::numeric, 0) AS oee,
-            -- Order Information
             eo.order_number,
             eo.item_number,
             eo.scheduled_end_time,
             COALESCE(eo.produced_quantity, 0) AS produced_quantity,
             COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
             eo.order_status,
-            -- Quality Control Information
             qc.inspection_result,
             qc.rejection_reason,
             COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
             COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
-            -- Maintenance Information
             mr.maintenance_status,
             mr.last_maintenance_date,
             mr.next_maintenance_date,
-            -- Timestamps
             mk.timestamp AS metrics_timestamp,
             eo.timestamp AS order_timestamp,
             qc.timestamp AS quality_timestamp
         FROM sites s
         LEFT JOIN departments a ON s.id = a.site_id
         LEFT JOIN production_lines pl ON a.id = pl.department_id
-        LEFT JOIN (
-            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
-            FROM kpi_metrics
-            ORDER BY line_id, timestamp DESC
-        ) mk ON mk.line_id = pl.id
-        LEFT JOIN (
-            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time,
-                   produced_quantity, remaining_quantity, order_status, timestamp
-            FROM erp_orders
-            ORDER BY line_id, scheduled_end_time DESC
-        ) eo ON eo.line_id = pl.id
-        LEFT JOIN (
-            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason,
-                   rejection_quantity, accepted_quantity, timestamp
-            FROM quality_inspections
-            ORDER BY line_id, timestamp DESC
-        ) qc ON qc.line_id = pl.id
-        LEFT JOIN (
-            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date,
-                   next_maintenance_date
-            FROM maintenance_records
-            ORDER BY line_id, timestamp DESC
-        ) mr ON mr.line_id = pl.id
+        LEFT JOIN latest_kpi mk ON mk.line_id = pl.id
+        LEFT JOIN latest_orders eo ON eo.line_id = pl.id
+        LEFT JOIN latest_qc qc ON qc.line_id = pl.id
+        LEFT JOIN latest_maintenance mr ON mr.line_id = pl.id
         WHERE s.site_name IN ('Biyagama', 'Katunayake') AND pl.line_name IS NOT NULL
-        ORDER BY
-            s.site_name ASC,
-            a.department_name ASC,
-            pl.line_name ASC
+        ORDER BY s.site_name ASC, a.department_name ASC, pl.line_name ASC
         LIMIT 200;
         """
        
@@ -1566,72 +1559,62 @@ class EnhancedResultFormatter:
         # UPDATED with new hierarchy (sites.id -> departments.site_id, etc.)
         # and new column names (gm, bu, department_name)
         sql = """
+        WITH latest_kpi AS (
+            SELECT DISTINCT ON (line_id) line_id, availability, quality, performance, oee, timestamp
+            FROM kpi_metrics
+            ORDER BY line_id, timestamp DESC
+        ),
+        latest_orders AS (
+            SELECT DISTINCT ON (line_id) line_id, order_number, item_number, scheduled_end_time,
+                   produced_quantity, remaining_quantity, order_status, timestamp
+            FROM erp_orders
+            ORDER BY line_id, scheduled_end_time DESC
+        ),
+        latest_qc AS (
+            SELECT DISTINCT ON (line_id) line_id, inspection_result, rejection_reason,
+                   rejection_quantity, accepted_quantity, timestamp
+            FROM quality_inspections
+            ORDER BY line_id, timestamp DESC
+        ),
+        latest_maintenance AS (
+            SELECT DISTINCT ON (line_id) line_id, maintenance_status, last_maintenance_date,
+                   next_maintenance_date
+            FROM maintenance_records
+            ORDER BY line_id, timestamp DESC
+        )
         SELECT
             COALESCE(s.site_name, 'Unknown Site') AS site_name,
             COALESCE(s.bu, 'Manufacturing') AS division,
             COALESCE(s.gm, 'Not Assigned') AS general_manager,
             COALESCE(a.department_name, 'General') AS area,
             COALESCE(pl.line_name, 'Line1') AS line_name,
-            -- OEE Metrics converted to percentages (latest values)
             ROUND((COALESCE(k.availability, 0) * 100)::numeric, 0) AS availability,
             ROUND((COALESCE(k.quality, 0) * 100)::numeric, 0) AS quality,
             ROUND((COALESCE(k.performance, 0) * 100)::numeric, 0) AS performance,
             ROUND((COALESCE(k.oee, 0) * 100)::numeric, 0) AS oee,
-            -- Current Order Information (optional)
             eo.order_number,
             eo.item_number,
             eo.scheduled_end_time,
             COALESCE(eo.produced_quantity, 0) AS produced_quantity,
             COALESCE(eo.remaining_quantity, 0) AS remaining_quantity,
             eo.order_status,
-            -- Quality Control Information (optional)
             qc.inspection_result,
             qc.rejection_reason,
             COALESCE(qc.rejection_quantity, 0) AS rejection_quantity,
             COALESCE(qc.accepted_quantity, 0) AS accepted_quantity,
-            -- Maintenance Information (optional)
             mr.maintenance_status,
             mr.last_maintenance_date,
             mr.next_maintenance_date,
-            -- Timestamps for data freshness
             k.timestamp AS metrics_timestamp,
             eo.timestamp AS order_timestamp,
             qc.timestamp AS quality_timestamp
         FROM sites s
         LEFT JOIN departments a ON s.id = a.site_id
         LEFT JOIN production_lines pl ON a.id = pl.department_id
-        -- Get latest KPI metrics for each line (if available)
-        LEFT JOIN LATERAL (
-            SELECT mk.*
-            FROM kpi_metrics mk
-            WHERE mk.line_id = pl.id
-            ORDER BY mk.timestamp DESC
-            LIMIT 1
-        ) k ON TRUE
-        -- Get current/active orders for each line (if available)
-        LEFT JOIN LATERAL (
-            SELECT eo.*
-            FROM erp_orders eo
-            WHERE eo.line_id = pl.id
-            ORDER BY eo.scheduled_end_time DESC
-            LIMIT 1
-        ) eo ON TRUE
-        -- Get latest quality control results (if available)
-        LEFT JOIN LATERAL (
-            SELECT qc.*
-            FROM quality_inspections qc
-            WHERE qc.line_id = pl.id
-            ORDER BY qc.timestamp DESC
-            LIMIT 1
-        ) qc ON TRUE
-        -- Get maintenance information (if available)
-        LEFT JOIN LATERAL (
-            SELECT mr.*
-            FROM maintenance_records mr
-            WHERE mr.line_id = pl.id
-            ORDER BY mr.timestamp DESC
-            LIMIT 1
-        ) mr ON TRUE
+        LEFT JOIN latest_kpi k ON k.line_id = pl.id
+        LEFT JOIN latest_orders eo ON eo.line_id = pl.id
+        LEFT JOIN latest_qc qc ON qc.line_id = pl.id
+        LEFT JOIN latest_maintenance mr ON mr.line_id = pl.id
         WHERE s.site_name IN ('Biyagama', 'Katunayake')
         ORDER BY
             s.site_name ASC,
@@ -2931,12 +2914,16 @@ class EnhancedVisualizationGenerator:
 # =============================================================================
 def main():
     """Main Streamlit application with improvements"""
-   
+    
     st.set_page_config(
         page_title="Improved Manufacturing Chatbot",
         page_icon="🏭",
         layout="wide"
     )
+    
+    # 🔴 ADD THESE TWO LINES HERE TO PREVENT THE CRASH 🔴
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
    
     # Session tracking
     if 'session_id' not in st.session_state:

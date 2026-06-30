@@ -1,6 +1,6 @@
 # AI Manufacturing Chatbot Dependencies
 # Core web framework
-streamlit>=1.28.0
+streamlit>=1.32.0
 
 # Data processing
 pandas>=2.0.0
@@ -12,10 +12,10 @@ seaborn>=0.12.0
 
 # Database connectivity
 supabase>=2.0.0
-SQLAlchemy>=1.4.0,<2.0.0
+SQLAlchemy>=2.0.0      # UPGRADED: Modern pandas (2.0+) requires SQLAlchemy 2.0+
 psycopg2-binary>=2.9.0
 
-# AI/ML - CORRECTED PACKAGE NAME
+# AI/ML
 openai>=1.0.0
 
 # Environment management

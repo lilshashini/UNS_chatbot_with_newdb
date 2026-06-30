@@ -1230,28 +1230,14 @@ class QueryExecutor:
                         logger.info("Executing query without parameters using text() wrapper")
                         result = connection.execute(text(sql))
                    
-                    # Convert result to DataFrame manually to avoid pandas/SQLAlchemy conflicts
-                    if hasattr(result, 'keys') and hasattr(result, 'fetchall'):
-                        columns = list(result.keys())
-                        rows = result.fetchall()
-                       
-                        # Convert rows to list of dicts to ensure clean data
-                        clean_rows = []
-                        for row in rows:
-                            if hasattr(row, '_asdict'):
-                                # NamedTuple-like object
-                                clean_rows.append(row._asdict())
-                            elif hasattr(row, 'keys'):
-                                # Mapping-like object
-                                clean_rows.append(dict(row))
-                            else:
-                                # Sequence-like object
-                                clean_rows.append(dict(zip(columns, row)))
-                       
+                    # Convert result to DataFrame natively using SQLAlchemy 2.0 mappings
+                    if result.returns_rows:
+                        # result.mappings().all() returns a list of dictionaries safely
+                        clean_rows = [dict(row) for row in result.mappings().all()]
                         df = pd.DataFrame(clean_rows)
                     else:
                         # Fallback: create empty DataFrame with expected structure
-                        logger.warning("Unexpected result format, creating empty DataFrame")
+                        logger.warning("Query executed successfully but returned no rows.")
                         df = pd.DataFrame()
                        
                 except Exception as sql_error:

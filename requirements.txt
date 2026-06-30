@@ -12,7 +12,7 @@ seaborn>=0.12.0
 
 # Database connectivity
 supabase>=2.0.0
-sqlalchemy>=2.0.0
+SQLAlchemy>=1.4.0,<2.0.0
 psycopg2-binary>=2.9.0
 
 # AI/ML - CORRECTED PACKAGE NAME
